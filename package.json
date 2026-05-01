@@ -11,15 +11,19 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "seed:geonames": "tsx scripts/seed-geonames.ts",
-    "source": "tsx scripts/run-source.ts"
+    "source": "tsx scripts/run-source.ts",
+    "worker": "tsx scripts/worker.ts",
+    "enqueue": "tsx scripts/enqueue.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "bullmq": "^5.76.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "html-to-text": "^10.0.0",
+    "ioredis": "^5.10.1",
     "lucide-react": "^1.14.0",
     "next": "14.2.35",
     "pg": "^8.20.0",
