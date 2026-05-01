@@ -1,13 +1,163 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Toplisters.xyz — database schema
+// Spec: info/PROJECT_SPEC.md (Unified Job Schema, lines 76–122)
 
 generator client {
   provider = "prisma-client"
   output   = "../lib/generated/prisma"
 }
 
+// DATABASE_URL is configured in prisma.config.ts (Prisma 7+ pattern).
 datasource db {
   provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────
+
+enum JobType {
+  full_time
+  part_time
+  contract
+  temp
+  internship
+}
+
+enum WorkMode {
+  remote
+  hybrid
+  onsite
+  unknown
+}
+
+enum ExperienceLevel {
+  entry
+  mid
+  senior
+  exec
+  unknown
+}
+
+enum CollarType {
+  blue
+  white
+  grey
+  unknown
+}
+
+enum SalaryPeriod {
+  hourly
+  daily
+  monthly
+  yearly
+}
+
+enum ModerationStatus {
+  approved
+  pending
+  rejected
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────
+
+model Job {
+  id               String           @id @default(cuid())
+  source           String
+  sourceId         String           @map("source_id")
+  title            String
+  companyName      String           @map("company_name")
+  companyDomain    String?          @map("company_domain")
+  locationText     String           @map("location_text")
+  countryCode      String           @map("country_code") @db.Char(2)
+  region           String?
+  city             String?
+  lat              Float
+  lng              Float
+  applyUrl         String           @map("apply_url")
+  descriptionHtml  String           @map("description_html")
+  descriptionText  String           @map("description_text")
+  postedDate       DateTime         @map("posted_date")
+  closingDate      DateTime?        @map("closing_date")
+  lastSeenAt       DateTime         @map("last_seen_at")
+  salaryMin        Int?             @map("salary_min")
+  salaryMax        Int?             @map("salary_max")
+  salaryCurrency   String?          @map("salary_currency") @db.Char(3)
+  salaryPeriod     SalaryPeriod?    @map("salary_period")
+  jobType          JobType          @map("job_type")
+  workMode         WorkMode         @default(unknown) @map("work_mode")
+  experienceLevel  ExperienceLevel  @default(unknown) @map("experience_level")
+  category         String
+  collarType       CollarType       @default(unknown) @map("collar_type")
+  skills           String[]
+  benefits         String[]
+  visaSponsorship  Boolean?         @map("visa_sponsorship")
+  isUserSubmitted  Boolean          @default(false) @map("is_user_submitted")
+  submittedByEmail String?          @map("submitted_by_email")
+  moderationStatus ModerationStatus @default(approved) @map("moderation_status")
+  isFeatured       Boolean          @default(false) @map("is_featured")
+  viewCount        Int              @default(0) @map("view_count")
+  clickCount       Int              @default(0) @map("click_count")
+  isActive         Boolean          @default(true) @map("is_active")
+  dedupeHash       String           @unique @map("dedupe_hash")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  clicks JobClick[]
+
+  @@unique([source, sourceId])
+  @@index([countryCode, isActive])
+  @@index([countryCode, city, isActive])
+  @@index([category, isActive])
+  @@index([isActive, postedDate(sort: Desc)])
+  @@index([isFeatured(sort: Desc), postedDate(sort: Desc)])
+  @@index([lastSeenAt])
+  @@map("jobs")
+}
+
+// Per-click tracking for /api/jobs/[id]/click → 302 redirect (spec line 153).
+model JobClick {
+  id        String   @id @default(cuid())
+  jobId     String   @map("job_id")
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  ipHash    String?  @map("ip_hash")
+  userAgent String?  @map("user_agent")
+  referer   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([jobId, createdAt])
+  @@map("job_clicks")
+}
+
+// GeoNames cities500 dataset (~200k rows). Seeded via scripts/seed-geonames.ts.
+model City {
+  id          Int     @id @default(autoincrement())
+  geonameId   Int     @unique @map("geoname_id")
+  name        String
+  asciiName   String  @map("ascii_name")
+  countryCode String  @map("country_code") @db.Char(2)
+  admin1Code  String? @map("admin1_code")
+  admin2Code  String? @map("admin2_code")
+  population  Int     @default(0)
+  lat         Float
+  lng         Float
+  timezone    String?
+
+  @@index([countryCode, name])
+  @@index([countryCode, admin1Code, name])
+  @@index([asciiName])
+  @@map("cities")
+}
+
+// Cache of raw_location_string → resolved coordinates (spec line 70).
+model GeocodeCache {
+  id          Int      @id @default(autoincrement())
+  rawLocation String   @unique @map("raw_location")
+  countryCode String?  @map("country_code") @db.Char(2)
+  region      String?
+  city        String?
+  lat         Float?
+  lng         Float?
+  hits        Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("geocode_cache")
 }
