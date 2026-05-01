@@ -12,6 +12,12 @@ export default function Home() {
           A globally-aware job board with a 3D globe at the centre.
           Coming together one feature at a time.
         </p>
+        <a
+          href="/jobs"
+          className="mt-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background hover:bg-foreground/90"
+        >
+          Browse jobs →
+        </a>
       </main>
       <footer className="border-t border-foreground/10 px-6 py-6 text-center text-xs text-foreground/60">
         Built by{" "}
