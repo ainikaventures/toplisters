@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Job } from "@/lib/generated/prisma/client";
 import { InitialsAvatar } from "./InitialsAvatar";
 import { shortLocation, salaryLabel } from "@/lib/format";
+import { slugify } from "@/lib/slug";
 
 /**
  * Spec line 143: cards show only the company logo by default; hover reveals
@@ -15,7 +16,7 @@ export function JobCard({ job }: { job: Job }) {
 
   return (
     <Link
-      href={`/jobs/${job.id}`}
+      href={`/jobs/${job.id}/${slugify(job.title)}`}
       className="group relative block aspect-square overflow-hidden rounded-xl border border-foreground/10 bg-muted transition-colors hover:border-foreground/30 focus-visible:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
     >
       <div className="absolute inset-0 flex items-center justify-center p-4">

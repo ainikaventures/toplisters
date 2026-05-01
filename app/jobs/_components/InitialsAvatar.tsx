@@ -3,7 +3,12 @@
  * Two-letter initials on a hue derived from the company name. Pure function:
  * the same input always renders the same output, so SSR + hydration agree.
  */
-function hashHue(input: string): number {
+/**
+ * 32-bit string hash → hue degree. Exported because the detail page hero
+ * banner uses the same hue to pick the gradient background, so the avatar
+ * and the banner agree on the brand colour for any given company.
+ */
+export function hashHue(input: string): number {
   let h = 0;
   for (let i = 0; i < input.length; i++) {
     h = (h * 31 + input.charCodeAt(i)) | 0;
