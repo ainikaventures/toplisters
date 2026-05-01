@@ -104,7 +104,7 @@ export default async function JobsPage({
             <EmptyState hasFilters={hasAnyFilter(filters)} />
           ) : (
             <>
-              <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              <ul className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
                 {jobs.map((job) => (
                   <li key={job.id}>
                     <JobCard job={job} />
