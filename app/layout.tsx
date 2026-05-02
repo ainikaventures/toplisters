@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -22,17 +23,25 @@ export const metadata: Metadata = {
     "A globally-aware job board. Discover roles on an interactive 3D globe — blue-collar to white-collar, free to post.",
 };
 
+// Inline no-flash script: must run synchronously before paint so dark-mode
+// users don't see a flash of light content during hydration. Keep it tiny
+// and `try`-wrapped — broken localStorage shouldn't break first paint.
+const NO_FLASH = `(function(){try{var t=localStorage.getItem('tl-theme')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark')}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

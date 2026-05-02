@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GlobeCluster, GlobeJob } from "@/app/_data/globe";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { JobPanel } from "./JobPanel";
 
 interface Props {
@@ -193,6 +194,12 @@ export function GlobeView({ clusters, jobs }: Props) {
   return (
     <div className="relative h-screen w-full overflow-hidden bg-black text-white">
       <div ref={containerRef} className="absolute inset-0" />
+
+      <div className="pointer-events-none absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+        <div className="pointer-events-auto">
+          <ThemeToggle className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white backdrop-blur transition-colors hover:bg-white/15" />
+        </div>
+      </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-center gap-2 p-6 text-center">
         <h1 className="pointer-events-auto text-3xl font-semibold tracking-tight sm:text-4xl">
