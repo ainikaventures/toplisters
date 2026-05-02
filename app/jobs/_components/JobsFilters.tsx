@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { countryName } from "@/lib/format";
 import type { JobFilters, JobsFacets } from "../_data/query";
@@ -43,6 +43,9 @@ export function JobsFilters({
   const router = useRouter();
   const pathname = usePathname();
   const formRef = useRef<HTMLFormElement>(null);
+  // Mobile-only collapse. On lg+ the form is always rendered (CSS forces it).
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const activeCount = countActive(filters);
 
   function commit(form: HTMLFormElement) {
     const data = new FormData(form);
@@ -72,12 +75,32 @@ export function JobsFilters({
   }
 
   return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setMobileOpen((v) => !v)}
+        aria-expanded={mobileOpen}
+        className="mb-3 flex w-full items-center justify-between rounded-md border border-foreground/15 px-3 py-2 text-sm font-medium hover:border-foreground/40 lg:hidden"
+      >
+        <span>
+          Filters
+          {activeCount > 0 ? (
+            <span className="ml-2 rounded-full bg-foreground px-1.5 py-0.5 text-[10px] text-background">
+              {activeCount}
+            </span>
+          ) : null}
+        </span>
+        <span aria-hidden className="text-xs text-foreground/50">
+          {mobileOpen ? "Hide ▲" : "Show ▼"}
+        </span>
+      </button>
+
     <form
       ref={formRef}
       method="get"
       action="/jobs"
       onSubmit={handleSubmit}
-      className="flex flex-col gap-5 text-sm"
+      className={`${mobileOpen ? "flex" : "hidden"} flex-col gap-5 text-sm lg:flex`}
     >
       <FilterField label="Search">
         <input
@@ -195,7 +218,17 @@ export function JobsFilters({
         </a>
       </div>
     </form>
+    </div>
   );
+}
+
+function countActive(filters: JobFilters): number {
+  let n = 0;
+  for (const [key, value] of Object.entries(filters)) {
+    if (key === "page") continue;
+    if (value !== null && value !== "") n++;
+  }
+  return n;
 }
 
 function FilterField({
