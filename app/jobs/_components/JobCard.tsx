@@ -20,10 +20,20 @@ export function JobCard({ job }: { job: Job }) {
       className="group relative block aspect-square overflow-hidden rounded-xl border border-foreground/10 bg-muted transition-colors hover:border-foreground/30 focus-visible:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
     >
       <div className="absolute inset-0 flex items-center justify-center p-4">
-        <InitialsAvatar
-          name={job.companyName}
-          className="size-full max-h-[125px] max-w-[125px]"
-        />
+        {job.companyLogoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={job.companyLogoUrl}
+            alt={`${job.companyName} logo`}
+            loading="lazy"
+            className="max-h-[125px] max-w-[125px] object-contain"
+          />
+        ) : (
+          <InitialsAvatar
+            name={job.companyName}
+            className="size-full max-h-[125px] max-w-[125px]"
+          />
+        )}
       </div>
 
       <div

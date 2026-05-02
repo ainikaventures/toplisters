@@ -1,6 +1,9 @@
 import type { JobSource, NormalizedJob } from "./types";
 import { cleanHtml, htmlToPlainText } from "./utils";
 
+const nonEmpty = (s: string | undefined | null) =>
+  s && s.trim() ? s.trim() : null;
+
 const ENDPOINT = "https://remoteok.com/api";
 const USER_AGENT = "Toplisters/1.0 (+https://toplisters.xyz)";
 
@@ -11,6 +14,7 @@ interface RemoteOKItem {
   epoch?: number;
   date?: string;
   company?: string;
+  company_logo?: string;
   position?: string;
   tags?: string[];
   logo?: string;
@@ -73,6 +77,11 @@ class RemoteOKSource implements JobSource {
         title: item.position.trim(),
         companyName: item.company.trim(),
         companyDomain: null,
+        // RemoteOK has stopped shipping logos in their public API as of mid-2025
+        // (their TOS forbids logo redistribution). Empty strings come through
+        // as falsy on render so the UI falls back to InitialsAvatar — but
+        // we normalise to null here so the column reflects the truth.
+        companyLogoUrl: nonEmpty(item.company_logo) ?? nonEmpty(item.logo) ?? null,
         locationText: (item.location ?? "Remote — Worldwide").trim(),
         applyUrl: item.apply_url ?? item.url ?? `https://remoteok.com/remote-jobs/${sourceId}`,
         descriptionHtml: cleanHtml(html),

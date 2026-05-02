@@ -75,7 +75,7 @@ export default async function JobDetailPage({
     <article className="mx-auto max-w-4xl px-6 py-10">
       <JobJsonLd job={job} siteUrl={SITE_URL} />
 
-      <HeroBanner companyName={job.companyName} />
+      <HeroBanner companyName={job.companyName} logoUrl={job.companyLogoUrl} />
 
       <header className="mt-8 flex flex-col gap-4">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">

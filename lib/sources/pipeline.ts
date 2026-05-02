@@ -76,9 +76,35 @@ async function processJob(
   const byHash = await prisma.job.findUnique({ where: { dedupeHash } });
   if (byHash) {
     if (byHash.source !== sourceName) stats.crossSourceDupes++;
+    // Refresh mutable fields too — a re-run from the same source might bring
+    // a better description, a logo, an updated salary, or a corrected location.
+    // We do *not* overwrite source / sourceId on cross-source hits so the
+    // first-seen source keeps ownership for analytics.
     await prisma.job.update({
       where: { id: byHash.id },
-      data: { lastSeenAt: now, isActive: true },
+      data: {
+        title: job.title,
+        companyName: job.companyName,
+        companyDomain: job.companyDomain,
+        companyLogoUrl: job.companyLogoUrl,
+        locationText: job.locationText,
+        applyUrl: job.applyUrl,
+        descriptionHtml: job.descriptionHtml,
+        descriptionText: job.descriptionText,
+        salaryMin: job.salaryMin,
+        salaryMax: job.salaryMax,
+        salaryCurrency: job.salaryCurrency,
+        salaryPeriod: job.salaryPeriod,
+        skills: job.skills,
+        benefits: job.benefits,
+        countryCode: geo.countryCode ?? UNKNOWN_COUNTRY,
+        region: geo.region,
+        city: geo.city,
+        lat: geo.lat,
+        lng: geo.lng,
+        lastSeenAt: now,
+        isActive: true,
+      },
     });
     stats.updated++;
     return;
@@ -101,6 +127,7 @@ async function processJob(
       title: job.title,
       companyName: job.companyName,
       companyDomain: job.companyDomain,
+      companyLogoUrl: job.companyLogoUrl,
       locationText: job.locationText,
       applyUrl: job.applyUrl,
       descriptionHtml: job.descriptionHtml,

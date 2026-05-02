@@ -12,6 +12,7 @@ export interface NormalizedJob {
   title: string;
   companyName: string;
   companyDomain: string | null;
+  companyLogoUrl: string | null;
   locationText: string;
   applyUrl: string;
   descriptionHtml: string;

@@ -65,6 +65,7 @@ model Job {
   title            String
   companyName      String           @map("company_name")
   companyDomain    String?          @map("company_domain")
+  companyLogoUrl   String?          @map("company_logo_url")
   locationText     String           @map("location_text")
   countryCode      String           @map("country_code") @db.Char(2)
   region           String?
@@ -99,6 +100,10 @@ model Job {
   dedupeHash       String           @unique @map("dedupe_hash")
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @updatedAt @map("updated_at")
+  // Generated column (see migration `add_jobs_search_vector`).
+  // Declared as Unsupported so Prisma neither drops it nor tries to (re)create
+  // it as a regular tsvector column.
+  searchVector     Unsupported("tsvector")? @map("search_vector")
 
   clicks JobClick[]
 
