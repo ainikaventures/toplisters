@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { geocode } from "@/lib/geocoding/lookup";
+import { resolveCompanyLogo } from "@/lib/logos";
 import { computeDedupeHash } from "./utils";
 import type { JobSource, NormalizedJob } from "./types";
 
@@ -66,6 +67,12 @@ async function processJob(
     return;
   }
 
+  // Logo fallback: if the source didn't ship a logo URL (RemoteOK no longer
+  // does), look it up by company name via Logo.dev. Cached server-side, so
+  // each unique company costs at most one API call per ~30 days.
+  const companyLogoUrl =
+    job.companyLogoUrl ?? (await resolveCompanyLogo(job.companyName));
+
   const dedupeHash = computeDedupeHash(
     job.title,
     job.companyName,
@@ -86,7 +93,7 @@ async function processJob(
         title: job.title,
         companyName: job.companyName,
         companyDomain: job.companyDomain,
-        companyLogoUrl: job.companyLogoUrl,
+        companyLogoUrl,
         locationText: job.locationText,
         applyUrl: job.applyUrl,
         descriptionHtml: job.descriptionHtml,
@@ -114,6 +121,7 @@ async function processJob(
     where: { source_sourceId: { source: sourceName, sourceId: job.sourceId } },
     create: {
       ...job,
+      companyLogoUrl,
       countryCode: geo.countryCode ?? UNKNOWN_COUNTRY,
       region: geo.region,
       city: geo.city,
@@ -127,7 +135,7 @@ async function processJob(
       title: job.title,
       companyName: job.companyName,
       companyDomain: job.companyDomain,
-      companyLogoUrl: job.companyLogoUrl,
+      companyLogoUrl,
       locationText: job.locationText,
       applyUrl: job.applyUrl,
       descriptionHtml: job.descriptionHtml,

@@ -151,6 +151,22 @@ model City {
   @@map("cities")
 }
 
+// Cache of (company name → resolved logo URL) populated via Logo.dev
+// brand-search. Stored once per distinct company so repeated aggregation
+// runs don't burn the 5k/month free tier on lookups we already did.
+// `logoUrl` is null when we tried but Logo.dev returned no match — we
+// re-try on demand via `lookedUpAt` freshness checks at the call site.
+model CompanyLogo {
+  id              Int      @id @default(autoincrement())
+  normalizedName  String   @unique @map("normalized_name")
+  displayName     String   @map("display_name")
+  domain          String?
+  logoUrl         String?  @map("logo_url")
+  lookedUpAt      DateTime @default(now()) @map("looked_up_at")
+
+  @@map("company_logos")
+}
+
 // Cache of raw_location_string → resolved coordinates (spec line 70).
 model GeocodeCache {
   id          Int      @id @default(autoincrement())
