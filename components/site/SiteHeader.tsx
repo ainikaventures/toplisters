@@ -29,6 +29,18 @@ export function SiteHeader() {
           >
             Browse
           </Link>
+          <Link
+            href="/jobs/locations"
+            className="text-xs text-foreground/60 hover:text-foreground"
+          >
+            Locations
+          </Link>
+          <Link
+            href="/post-a-job"
+            className="text-xs text-foreground/60 hover:text-foreground"
+          >
+            Post a job
+          </Link>
         </div>
         <ThemeToggle />
       </div>

@@ -1,3 +1,7 @@
+"use client";
+
+import { useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { countryName } from "@/lib/format";
 import type { JobFilters, JobsFacets } from "../_data/query";
 
@@ -21,9 +25,13 @@ const HUMAN: Record<string, string> = {
 };
 
 /**
- * Filter sidebar. Uses a plain GET form so filtering works without JS — the
- * page re-renders server-side with the new `searchParams`. The Reset link
- * just navigates to /jobs with no query.
+ * Client filter sidebar. Selects auto-submit on change; text + number
+ * inputs auto-submit on blur. Pressing Enter inside the search box
+ * submits too (the wrapping <form>'s default behaviour). The Apply
+ * button stays so JS-disabled users still have a working form.
+ *
+ * `router.replace` (not push) keeps the back button useful — each filter
+ * tweak doesn't add a history entry.
  */
 export function JobsFilters({
   filters,
@@ -32,20 +40,62 @@ export function JobsFilters({
   filters: JobFilters;
   facets: JobsFacets;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  function commit(form: HTMLFormElement) {
+    const data = new FormData(form);
+    const params = new URLSearchParams();
+    for (const [key, value] of data.entries()) {
+      if (typeof value === "string" && value.trim()) {
+        params.set(key, value.trim());
+      }
+    }
+    // Filters changed → reset to page 1.
+    params.delete("page");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    commit(event.currentTarget);
+  }
+
+  function handleSelectChange() {
+    if (formRef.current) commit(formRef.current);
+  }
+
+  function handleInputBlur() {
+    if (formRef.current) commit(formRef.current);
+  }
+
   return (
-    <form method="get" className="flex flex-col gap-5 text-sm">
+    <form
+      ref={formRef}
+      method="get"
+      action="/jobs"
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-5 text-sm"
+    >
       <FilterField label="Search">
         <input
           type="search"
           name="q"
           defaultValue={filters.q ?? ""}
           placeholder="Title, company, keyword…"
+          onBlur={handleInputBlur}
           className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
         />
       </FilterField>
 
       <FilterField label="Country">
-        <SelectField name="country" value={filters.country}>
+        <SelectField
+          name="country"
+          value={filters.country}
+          onChange={handleSelectChange}
+        >
           {facets.countries.map((c) => (
             <option key={c.value} value={c.value}>
               {countryName(c.value)} ({c.count})
@@ -55,7 +105,11 @@ export function JobsFilters({
       </FilterField>
 
       <FilterField label="Category">
-        <SelectField name="category" value={filters.category}>
+        <SelectField
+          name="category"
+          value={filters.category}
+          onChange={handleSelectChange}
+        >
           {facets.categories.map((c) => (
             <option key={c.value} value={c.value}>
               {c.value} ({c.count})
@@ -65,7 +119,11 @@ export function JobsFilters({
       </FilterField>
 
       <FilterField label="Work mode">
-        <SelectField name="workMode" value={filters.workMode}>
+        <SelectField
+          name="workMode"
+          value={filters.workMode}
+          onChange={handleSelectChange}
+        >
           {WORK_MODES.map((m) => (
             <option key={m} value={m}>{HUMAN[m]}</option>
           ))}
@@ -73,7 +131,11 @@ export function JobsFilters({
       </FilterField>
 
       <FilterField label="Job type">
-        <SelectField name="jobType" value={filters.jobType}>
+        <SelectField
+          name="jobType"
+          value={filters.jobType}
+          onChange={handleSelectChange}
+        >
           {JOB_TYPES.map((t) => (
             <option key={t} value={t}>{HUMAN[t]}</option>
           ))}
@@ -81,7 +143,11 @@ export function JobsFilters({
       </FilterField>
 
       <FilterField label="Collar">
-        <SelectField name="collarType" value={filters.collarType}>
+        <SelectField
+          name="collarType"
+          value={filters.collarType}
+          onChange={handleSelectChange}
+        >
           {COLLAR_TYPES.map((c) => (
             <option key={c} value={c}>{HUMAN[c]}</option>
           ))}
@@ -96,6 +162,7 @@ export function JobsFilters({
           step={5000}
           defaultValue={filters.salaryMin ?? ""}
           placeholder="0"
+          onBlur={handleInputBlur}
           className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
         />
       </FilterField>
@@ -108,6 +175,7 @@ export function JobsFilters({
           step={5000}
           defaultValue={filters.salaryMax ?? ""}
           placeholder="No limit"
+          onBlur={handleInputBlur}
           className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
         />
       </FilterField>
@@ -150,16 +218,19 @@ function FilterField({
 function SelectField({
   name,
   value,
+  onChange,
   children,
 }: {
   name: string;
   value: string | null;
+  onChange: () => void;
   children: React.ReactNode;
 }) {
   return (
     <select
       name={name}
       defaultValue={value ?? ""}
+      onChange={onChange}
       className="w-full rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/40"
     >
       <option value="">Any</option>
