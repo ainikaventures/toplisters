@@ -1,6 +1,6 @@
 import { SiteHeader } from "@/components/site/SiteHeader";
 
-export default function JobsLayout({ children }: { children: React.ReactNode }) {
+export default function JobLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteHeader />

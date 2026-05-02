@@ -40,13 +40,13 @@ export async function generateMetadata({
     title: `${job.title} — ${job.companyName}`,
     description,
     alternates: {
-      canonical: `${SITE_URL}/jobs/${job.id}/${slugify(job.title)}`,
+      canonical: `${SITE_URL}/job/${job.id}/${slugify(job.title)}`,
     },
     openGraph: {
       title: `${job.title} at ${job.companyName}`,
       description: `${location}${salaryLabel(job) ? ` · ${salaryLabel(job)}` : ""}`,
       type: "website",
-      url: `${SITE_URL}/jobs/${job.id}/${slugify(job.title)}`,
+      url: `${SITE_URL}/job/${job.id}/${slugify(job.title)}`,
     },
   };
 }
@@ -63,7 +63,7 @@ export default async function JobDetailPage({
   // Canonical-redirect mismatched slugs so search engines settle on one URL.
   const canonicalSlug = slugify(job.title);
   if (slug !== canonicalSlug) {
-    redirect(`/jobs/${id}/${canonicalSlug}`);
+    redirect(`/job/${id}/${canonicalSlug}`);
   }
 
   const source = getSource(job.source);

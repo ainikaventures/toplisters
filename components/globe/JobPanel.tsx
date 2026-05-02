@@ -53,7 +53,7 @@ export function JobPanel({ open, title, subtitle, jobs, onClose }: Props) {
           {jobs.map((job) => (
             <li key={job.id}>
               <Link
-                href={`/jobs/${job.id}/${job.slug}`}
+                href={`/job/${job.id}/${job.slug}`}
                 className="flex items-center gap-3 px-6 py-4 transition-colors hover:bg-foreground/5"
                 onClick={onClose}
               >

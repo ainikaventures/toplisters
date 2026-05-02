@@ -39,7 +39,7 @@ export function JobJsonLd({ job, siteUrl }: { job: Job; siteUrl: string }) {
       ...(job.companyDomain ? { sameAs: `https://${job.companyDomain}` } : {}),
     },
     directApply: true,
-    url: `${siteUrl}/jobs/${job.id}`,
+    url: `${siteUrl}/job/${job.id}`,
   };
 
   if (job.closingDate) json.validThrough = job.closingDate.toISOString();
