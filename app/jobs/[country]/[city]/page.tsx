@@ -77,7 +77,12 @@ export default async function LocationPage({
       <nav className="mb-6 flex items-center gap-2 text-xs text-foreground/60">
         <Link href="/jobs" className="hover:text-foreground">All jobs</Link>
         <span>/</span>
-        <span>{country}</span>
+        <Link
+          href={`/jobs/${result.canonicalCountrySlug}`}
+          className="hover:text-foreground"
+        >
+          {country}
+        </Link>
         <span>/</span>
         <span className="text-foreground">{data.city}</span>
       </nav>
