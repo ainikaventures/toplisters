@@ -1,5 +1,6 @@
 import type { JobSource } from "./types";
 import { remoteOK } from "./remoteok";
+import { arbeitnow } from "./arbeitnow";
 
 /**
  * Registry of all known job sources. Adding a new source = adding one import
@@ -8,7 +9,7 @@ import { remoteOK } from "./remoteok";
  * Sources are kept in the registry whether or not they're currently enabled
  * via env var; the pipeline calls `isEnabled()` to decide what to run.
  */
-export const sources: readonly JobSource[] = [remoteOK];
+export const sources: readonly JobSource[] = [remoteOK, arbeitnow];
 
 export function getSource(name: string): JobSource | undefined {
   return sources.find((s) => s.name === name);
