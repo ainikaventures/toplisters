@@ -105,7 +105,8 @@ model Job {
   // it as a regular tsvector column.
   searchVector     Unsupported("tsvector")? @map("search_vector")
 
-  clicks JobClick[]
+  clicks      JobClick[]
+  submission  JobSubmission?
 
   @@unique([source, sourceId])
   @@index([countryCode, isActive])
@@ -115,6 +116,24 @@ model Job {
   @@index([isFeatured(sort: Desc), postedDate(sort: Desc)])
   @@index([lastSeenAt])
   @@map("jobs")
+}
+
+// User-submitted jobs go through a magic-link email confirmation before
+// they reach the admin moderation queue. The Job row is created up-front
+// in moderation_status=pending + is_active=false; the JobSubmission row
+// holds the verification token.
+model JobSubmission {
+  id               String    @id @default(cuid())
+  jobId            String    @unique @map("job_id")
+  job              Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  email            String
+  token            String    @unique
+  emailConfirmedAt DateTime? @map("email_confirmed_at")
+  expiresAt        DateTime  @map("expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([emailConfirmedAt])
+  @@map("job_submissions")
 }
 
 // Per-click tracking for /api/jobs/[id]/click → 302 redirect (spec line 153).
