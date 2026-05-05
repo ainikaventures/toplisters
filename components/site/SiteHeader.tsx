@@ -8,6 +8,7 @@ const NAV: { href: string; label: string }[] = [
   { href: "/", label: "Globe" },
   { href: "/jobs", label: "Browse" },
   { href: "/jobs/locations", label: "Locations" },
+  { href: "/analytics", label: "Analytics" },
   { href: "/post-a-job", label: "Post a job" },
 ];
 
