@@ -3,6 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Analytics } from "@/components/analytics/Analytics";
+import { ConsentProvider } from "@/components/consent/ConsentProvider";
+import { CookieBanner } from "@/components/consent/CookieBanner";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -42,8 +44,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <ThemeProvider>{children}</ThemeProvider>
-        <Analytics />
+        <ConsentProvider>
+          <ThemeProvider>{children}</ThemeProvider>
+          <CookieBanner />
+          <Analytics />
+        </ConsentProvider>
       </body>
     </html>
   );

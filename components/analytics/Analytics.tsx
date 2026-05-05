@@ -2,19 +2,14 @@
 
 import { useEffect } from "react";
 import Script from "next/script";
+import { useConsent } from "@/components/consent/ConsentProvider";
 
 /**
- * Optional analytics. Both PostHog and GA4 load conditionally based on env
- * vars — leave them blank in .env to disable everything. PostHog is the
- * spec's primary choice (privacy-friendlier, EU host by default, generous
- * 1M-events/month free tier); GA4 sits alongside for users who want
- * Google's reach + Search Console correlation.
- *
- * Both load with the `afterInteractive` strategy so they don't block the
- * initial paint. PostHog's SPA pageview tracking is on by default and
- * picks up Next.js client-side navigation; GA4 captures the initial PV
- * via gtag('config') — extending to SPA navigation can be added later if
- * the data shows we need it.
+ * Optional analytics. Both PostHog and GA4 load conditionally based on
+ * env vars AND on the user's cookie consent — neither script is fetched
+ * or executed until the user clicks Accept on the consent banner.
+ * Decline / pending → nothing loads, no cookies are set, no network
+ * calls to either vendor. EU/UK opt-in compliant by construction.
  */
 const POSTHOG_HOST_DEFAULT = "https://eu.i.posthog.com";
 
@@ -69,6 +64,8 @@ gtag('config', '${id}', { send_page_view: true });
 }
 
 export function Analytics() {
+  const { consent } = useConsent();
+  if (consent !== "granted") return null;
   return (
     <>
       <PostHog />

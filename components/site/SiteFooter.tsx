@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ManageCookies } from "@/components/consent/ManageCookies";
 
 /**
  * Shared footer for /jobs/* and /job/* routes. Single line of attribution
@@ -26,12 +27,15 @@ export function SiteFooter() {
         Lyrava
       </a>
       {" · "}
-      <Link
-        href="/about"
-        className="hover:text-foreground"
-      >
+      <Link href="/about" className="hover:text-foreground">
         About
       </Link>
+      {" · "}
+      <Link href="/privacy" className="hover:text-foreground">
+        Privacy
+      </Link>
+      {" · "}
+      <ManageCookies />
     </footer>
   );
 }
