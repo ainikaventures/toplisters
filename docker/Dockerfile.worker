@@ -1,0 +1,29 @@
+# Production worker image (BullMQ aggregation + maintenance).
+# Re-uses the same dep + build stages as the web image; the runtime only
+# needs the source tree + node_modules + generated Prisma client to run
+# scripts/worker.ts via tsx.
+
+FROM node:22-alpine AS deps
+WORKDIR /app
+RUN apk add --no-cache libc6-compat openssl
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+RUN npm ci --no-audit --no-fund
+
+FROM node:22-alpine AS build
+WORKDIR /app
+RUN apk add --no-cache libc6-compat openssl
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npx prisma generate
+
+FROM node:22-alpine AS runtime
+WORKDIR /app
+RUN apk add --no-cache libc6-compat openssl
+ENV NODE_ENV=production
+
+# Whole tree — the worker uses tsx to run TypeScript directly.
+COPY --from=build /app .
+
+CMD ["npm", "run", "worker"]

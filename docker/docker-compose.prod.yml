@@ -1,0 +1,98 @@
+# Production stack. Run from the repo root:
+#   docker compose -f docker/docker-compose.prod.yml --env-file .env up -d
+#
+# `deploy.sh` wraps that with build + migration + health check.
+#
+# Caddy terminates TLS for toplisters.xyz (auto Let's Encrypt) and
+# reverse-proxies port 80/443 to the Next.js web service. Postgres +
+# Redis are private (no published ports). The worker is also private —
+# it talks to Postgres + Redis over the compose network only.
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    container_name: toplisters-web
+    env_file: ../.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-toplisters}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-toplisters}?schema=public
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+    networks: [internal]
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    container_name: toplisters-worker
+    env_file: ../.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-toplisters}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-toplisters}?schema=public
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+    networks: [internal]
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: toplisters-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-toplisters}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-toplisters}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-toplisters} -d ${POSTGRES_DB:-toplisters}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [internal]
+
+  redis:
+    image: redis:7-alpine
+    container_name: toplisters-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [internal]
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: toplisters-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks: [internal]
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge
