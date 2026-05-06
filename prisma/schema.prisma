@@ -186,6 +186,29 @@ model CompanyLogo {
   @@map("company_logos")
 }
 
+// Email-alert subscribers. Phase-1.5 collection-only — actual digest
+// sending is deferred until Resend's sending domain is verified
+// post-deploy. Each subscriber confirms via magic-link before they're
+// considered active (confirmedAt is set); unsubscribe is one-click via
+// a separate token that lives forever in every digest email.
+model Subscriber {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  /// ISO-2 country codes the user wants alerts for; empty = all.
+  countries        String[]  @default([])
+  /// Work modes (remote / hybrid / onsite). Empty = all.
+  workModes        String[]  @default([]) @map("work_modes")
+  confirmToken     String    @unique @map("confirm_token")
+  confirmedAt      DateTime? @map("confirmed_at")
+  unsubscribeToken String    @unique @map("unsubscribe_token")
+  unsubscribedAt   DateTime? @map("unsubscribed_at")
+  lastSentAt       DateTime? @map("last_sent_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([confirmedAt, unsubscribedAt])
+  @@map("subscribers")
+}
+
 // Cache of raw_location_string → resolved coordinates (spec line 70).
 model GeocodeCache {
   id          Int      @id @default(autoincrement())
