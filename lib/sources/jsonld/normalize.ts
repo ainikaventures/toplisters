@@ -41,6 +41,7 @@ const EMPLOYMENT_TYPE_MAP: Record<string, $Enums.JobType> = {
   parttime: "part_time",
   contractor: "contract",
   contract: "contract",
+  freelance: "contract",
   temporary: "temp",
   temp: "temp",
   intern: "internship",
@@ -115,7 +116,10 @@ function parseDate(value: unknown): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function extractCompany(node: unknown): {
+function extractCompany(
+  node: unknown,
+  sourceHost: string | null,
+): {
   name: string | null;
   logoUrl: string | null;
   domain: string | null;
@@ -135,6 +139,18 @@ function extractCompany(node: unknown): {
   else {
     const logoObj = asObject(logoRaw);
     if (logoObj) logoUrl = asString(logoObj.url) ?? asString(logoObj.contentUrl);
+  }
+  // Some boards (journalismjobs et al.) embed the *site's own* logo as a
+  // placeholder when the employer didn't supply one. Drop those so the
+  // pipeline's Logo.dev / InitialsAvatar fallback can do its job.
+  if (logoUrl && sourceHost) {
+    try {
+      const logoHost = new URL(logoUrl).hostname.replace(/^www\./, "");
+      if (logoHost === sourceHost) logoUrl = null;
+    } catch {
+      // Malformed logo URL; treat as absent.
+      logoUrl = null;
+    }
   }
 
   // companyDomain: prefer `url`, then first `sameAs` entry that looks like a homepage.
@@ -196,6 +212,10 @@ function extractLocationText(
       ].filter((s): s is string => Boolean(s));
       if (parts.length > 0) return parts.join(", ");
     }
+    // Some boards (designjobsboard, etc.) flatten the address to a string
+    // like "London/Hybrid" instead of using a PostalAddress object.
+    const addressString = asString(obj.address);
+    if (addressString) return addressString;
     const flatName = asString(obj.name);
     if (flatName) return flatName;
   }
@@ -331,7 +351,13 @@ export function normalizeJobPosting(
   const node = asObject(raw) as JobPostingNode | null;
   if (!node) return null;
   const title = asString(node.title);
-  const company = extractCompany(node.hiringOrganization);
+  let sourceHost: string | null = null;
+  try {
+    sourceHost = new URL(config.homeUrl).hostname.replace(/^www\./, "");
+  } catch {
+    sourceHost = null;
+  }
+  const company = extractCompany(node.hiringOrganization, sourceHost);
   if (!title || !company.name) return null;
 
   const sourceId = deriveSourceId(node, pageUrl);
