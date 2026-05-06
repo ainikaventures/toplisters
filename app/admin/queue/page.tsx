@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { relativeTime, locationLabel, salaryLabel } from "@/lib/format";
+import { AdminNav } from "../_components/AdminNav";
 import { approveSubmission, rejectSubmission } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,7 @@ export default async function ModerationQueuePage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-5xl px-6 py-10">
+        <AdminNav />
         <header className="mb-8 flex flex-col gap-2">
           <h1 className="text-3xl font-semibold tracking-tight">
             Moderation queue
