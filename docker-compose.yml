@@ -3,16 +3,24 @@ services:
     image: postgres:16-alpine
     container_name: toplisters-postgres
     restart: unless-stopped
+    # Bind to 5433 internally so the dev box stays compatible with the
+    # production isolation rule (info/INFRASTRUCTURE.md §1: Postgres on
+    # 5433, never 5432). Same port externally to keep DATABASE_URL the
+    # same shape across dev + prod.
+    command: postgres -p 5433
     environment:
       POSTGRES_USER: toplisters
       POSTGRES_PASSWORD: toplisters
       POSTGRES_DB: toplisters
+      # Init script reads this to create the limited runtime role.
+      TOPLISTERS_APP_PASSWORD: toplisters_app
     ports:
-      - "5432:5432"
+      - "5433:5433"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init.d:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U toplisters -d toplisters"]
+      test: ["CMD-SHELL", "pg_isready -U toplisters -d toplisters -p 5433"]
       interval: 5s
       timeout: 5s
       retries: 10

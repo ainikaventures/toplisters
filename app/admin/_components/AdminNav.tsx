@@ -3,6 +3,7 @@ import Link from "next/link";
 const TABS: { href: string; label: string }[] = [
   { href: "/admin/queue", label: "Moderation queue" },
   { href: "/admin/featured", label: "Featured" },
+  { href: "/admin/bullmq", label: "Queues" },
 ];
 
 /**

@@ -22,10 +22,13 @@ echo "→ Starting / refreshing infra (postgres, redis, caddy)…"
 $COMPOSE up -d postgres redis caddy
 
 echo "→ Waiting for postgres to be healthy…"
-until $COMPOSE exec -T postgres pg_isready -U "${POSTGRES_USER:-toplisters}" >/dev/null 2>&1; do
+until $COMPOSE exec -T postgres pg_isready -U "${POSTGRES_USER:-toplisters}" -p 5433 >/dev/null 2>&1; do
   sleep 1
 done
 
+# `prisma migrate deploy` uses MIGRATION_DATABASE_URL via prisma.config.ts
+# (falls back to DATABASE_URL). Both come from the web container's env so
+# no extra wiring is needed here.
 echo "→ Running Prisma migrations…"
 $COMPOSE run --rm web npx prisma migrate deploy
 

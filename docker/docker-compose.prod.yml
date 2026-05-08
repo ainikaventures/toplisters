@@ -7,6 +7,14 @@
 # reverse-proxies port 80/443 to the Next.js web service. Postgres +
 # Redis are private (no published ports). The worker is also private —
 # it talks to Postgres + Redis over the compose network only.
+#
+# Two-app isolation rules (info/INFRASTRUCTURE.md §1):
+#   - Dedicated network `toplisters_net` so SplitAI on the same host
+#     can run on its own bridge without name collisions
+#   - Postgres listens on 5433 internally (5432 reserved for SplitAI's
+#     conventions on this shared box)
+#   - Redis pinned to DB index 1 (DB 0 unused; SplitAI uses DB 2)
+#   - All containers prefixed `toplisters-`
 
 services:
   web:
@@ -17,13 +25,14 @@ services:
     env_file: ../.env
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-toplisters}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-toplisters}?schema=public
-      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://toplisters_app:${TOPLISTERS_APP_PASSWORD}@postgres:5433/${POSTGRES_DB:-toplisters}?schema=public
+      MIGRATION_DATABASE_URL: postgresql://${POSTGRES_USER:-toplisters}:${POSTGRES_PASSWORD}@postgres:5433/${POSTGRES_DB:-toplisters}?schema=public
+      REDIS_URL: redis://redis:6379/1
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     restart: unless-stopped
-    networks: [internal]
+    networks: [toplisters_net]
 
   worker:
     build:
@@ -33,30 +42,36 @@ services:
     env_file: ../.env
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-toplisters}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-toplisters}?schema=public
-      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://toplisters_app:${TOPLISTERS_APP_PASSWORD}@postgres:5433/${POSTGRES_DB:-toplisters}?schema=public
+      REDIS_URL: redis://redis:6379/1
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     restart: unless-stopped
-    networks: [internal]
+    networks: [toplisters_net]
 
   postgres:
     image: postgres:16-alpine
     container_name: toplisters-postgres
+    command: postgres -p 5433
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-toplisters}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-toplisters}
+      # First-init script reads this to create the limited runtime role.
+      # For existing volumes that pre-date this script, run
+      # `scripts/setup-app-user.sh` once instead.
+      TOPLISTERS_APP_PASSWORD: ${TOPLISTERS_APP_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init.d:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-toplisters} -d ${POSTGRES_DB:-toplisters}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-toplisters} -d ${POSTGRES_DB:-toplisters} -p 5433"]
       interval: 5s
       timeout: 5s
       retries: 10
     restart: unless-stopped
-    networks: [internal]
+    networks: [toplisters_net]
 
   redis:
     image: redis:7-alpine
@@ -69,7 +84,7 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
-    networks: [internal]
+    networks: [toplisters_net]
 
   caddy:
     image: caddy:2-alpine
@@ -85,7 +100,7 @@ services:
     depends_on:
       - web
     restart: unless-stopped
-    networks: [internal]
+    networks: [toplisters_net]
 
 volumes:
   postgres_data:
@@ -94,5 +109,5 @@ volumes:
   caddy_config:
 
 networks:
-  internal:
+  toplisters_net:
     driver: bridge
