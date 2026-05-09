@@ -3,6 +3,7 @@ import { remoteOK } from "./remoteok";
 import { arbeitnow } from "./arbeitnow";
 import { reed } from "./reed";
 import { theMuse } from "./themuse";
+import { adzuna } from "./adzuna";
 import { createJsonLdSource } from "./jsonld/source";
 import { JSON_LD_SITES } from "./jsonld/sites";
 
@@ -24,6 +25,7 @@ export const sources: readonly JobSource[] = [
   arbeitnow,
   reed,
   theMuse,
+  adzuna,
   ...jsonLdSources,
 ];
 
