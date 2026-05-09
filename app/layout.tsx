@@ -25,6 +25,13 @@ export const metadata: Metadata = {
   },
   description:
     "A globally-aware job board. Discover roles on an interactive 3D globe — blue-collar to white-collar, free to post.",
+  other: {
+    // Google AdSense ownership verification. Renders as
+    // <meta name="google-adsense-account" content="ca-pub-..." />.
+    // Does NOT load adsbygoogle.js — that's done by AdsLoader after consent
+    // (preserves the consent-gated design from commit 3a191aa).
+    "google-adsense-account": "ca-pub-2028217968551720",
+  },
 };
 
 // Inline no-flash script: must run synchronously before paint so dark-mode
