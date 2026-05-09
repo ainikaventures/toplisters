@@ -16,10 +16,14 @@ if [[ -z "${TOPLISTERS_APP_PASSWORD:-}" ]]; then
   exit 0
 fi
 
+# NOTE: don't pass --port here. The postgres official image runs a TEMP server
+# on the default port (5432) during init.d execution, regardless of the
+# command-line port (-p 5433) that takes effect on the post-init restart.
+# Connecting via local Unix socket without an explicit --port lets psql find
+# whichever port the temp server is on.
 psql -v ON_ERROR_STOP=1 \
      --username "${POSTGRES_USER}" \
      --dbname "${POSTGRES_DB}" \
-     --port "${PGPORT:-5433}" \
      -v app_password="${TOPLISTERS_APP_PASSWORD}" \
      -v dbname="${POSTGRES_DB}" <<-'EOSQL'
 -- psql variable substitution (`:'app_password'`) doesn't reach inside

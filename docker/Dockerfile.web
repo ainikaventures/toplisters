@@ -37,9 +37,12 @@ COPY --from=build /app/public ./public
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/lib/generated ./lib/generated
-# `prisma migrate deploy` is invoked from deploy.sh, so keep the CLI binary.
+# `prisma migrate deploy` is invoked from deploy.sh, so keep the CLI binary
+# AND its sibling @prisma/* packages (engines, internals) — without these the
+# CLI fails with `Cannot find module '@prisma/engines'` at runtime.
 COPY --from=build /app/node_modules/prisma ./node_modules/prisma
 COPY --from=build /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
 
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
