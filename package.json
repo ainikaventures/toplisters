@@ -13,7 +13,8 @@
     "seed:geonames": "tsx scripts/seed-geonames.ts",
     "source": "tsx scripts/run-source.ts",
     "worker": "tsx scripts/worker.ts",
-    "enqueue": "tsx scripts/enqueue.ts"
+    "enqueue": "tsx scripts/enqueue.ts",
+    "reclassify-collar": "tsx scripts/reclassify-collar.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

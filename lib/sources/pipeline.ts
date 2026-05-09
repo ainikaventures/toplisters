@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { geocode } from "@/lib/geocoding/lookup";
 import { resolveCompanyLogo } from "@/lib/logos";
+import { classifyCollar } from "@/lib/classify/collar";
 import { computeDedupeHash } from "./utils";
 import type { JobSource, NormalizedJob } from "./types";
 
@@ -73,6 +74,16 @@ async function processJob(
   const companyLogoUrl =
     job.companyLogoUrl ?? (await resolveCompanyLogo(job.companyName));
 
+  // Re-classify collar type from title + category. Adapters that hardcode
+  // "white" (RemoteOK, Arbeitnow, The Muse, etc.) keep their default for
+  // ambiguous titles; mixed sources like Reed (which hint "unknown") get
+  // promoted to "blue" / "white" when the title clearly matches.
+  const collarType = classifyCollar({
+    title: job.title,
+    category: job.category,
+    hint: job.collarType,
+  });
+
   const dedupeHash = computeDedupeHash(
     job.title,
     job.companyName,
@@ -104,6 +115,7 @@ async function processJob(
         salaryPeriod: job.salaryPeriod,
         skills: job.skills,
         benefits: job.benefits,
+        collarType,
         countryCode: geo.countryCode ?? UNKNOWN_COUNTRY,
         region: geo.region,
         city: geo.city,
@@ -121,6 +133,7 @@ async function processJob(
     where: { source_sourceId: { source: sourceName, sourceId: job.sourceId } },
     create: {
       ...job,
+      collarType,
       companyLogoUrl,
       countryCode: geo.countryCode ?? UNKNOWN_COUNTRY,
       region: geo.region,
@@ -146,6 +159,7 @@ async function processJob(
       salaryPeriod: job.salaryPeriod,
       skills: job.skills,
       benefits: job.benefits,
+      collarType,
       countryCode: geo.countryCode ?? UNKNOWN_COUNTRY,
       region: geo.region,
       city: geo.city,
