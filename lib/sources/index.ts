@@ -4,6 +4,8 @@ import { arbeitnow } from "./arbeitnow";
 import { reed } from "./reed";
 import { theMuse } from "./themuse";
 import { adzuna } from "./adzuna";
+import { jooble } from "./jooble";
+import { findwork } from "./findwork";
 import { createJsonLdSource } from "./jsonld/source";
 import { JSON_LD_SITES } from "./jsonld/sites";
 
@@ -26,6 +28,8 @@ export const sources: readonly JobSource[] = [
   reed,
   theMuse,
   adzuna,
+  jooble,
+  findwork,
   ...jsonLdSources,
 ];
 
