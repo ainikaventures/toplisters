@@ -3,6 +3,12 @@ import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/slug";
 import { cityToSlug, countryToSlug } from "@/lib/locations";
 
+// Render on demand, not at build time — DB isn't reachable during `docker build`.
+// revalidate = 3600 lets Next cache the result for an hour so crawlers don't
+// hammer Postgres.
+export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const MIN_JOBS_PER_CITY = 5; // Same threshold as the city landing page itself
 
