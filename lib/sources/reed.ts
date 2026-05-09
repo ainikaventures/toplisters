@@ -52,6 +52,15 @@ const SALARY_PERIOD_MAP: Record<string, $Enums.SalaryPeriod> = {
 const UK_REGEX = /\b(uk|u\.k\.|united kingdom|england|scotland|wales|northern ireland)\b/i;
 const REMOTE_REGEX = /\bremote\b/i;
 
+// Reed exposes an ad-syndication tier where the `employerName` is the
+// syndicator (Appcast / Appcastenterprise) rather than the real employer.
+// These rows have no recoverable brand: Logo.dev can't find a logo for
+// "Appcast", the apply URL bounces through reed.co.uk, and the description
+// doesn't reliably name the original poster either. Dropping them is far
+// cleaner than littering the listings with identical "AP" InitialsAvatar
+// tiles. Add other syndicator strings to this regex as they surface.
+const SYNDICATOR_RE = /^appcast(\s*enterprise)?$/i;
+
 /**
  * Reed.co.uk's date format is `dd/mm/yyyy`. Returns the current date when
  * the value is missing or unparseable so a malformed payload doesn't drop
@@ -127,6 +136,7 @@ class ReedSource implements JobSource {
     const out: NormalizedJob[] = [];
     for (const item of items) {
       if (!item.jobId || !item.jobTitle || !item.employerName) continue;
+      if (SYNDICATOR_RE.test(item.employerName.trim())) continue;
 
       const sourceId = String(item.jobId);
       const summary = item.jobDescription ?? "";
