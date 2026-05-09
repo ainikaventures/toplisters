@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { countryToSlug, resolveCountrySlug } from "@/lib/locations";
 import { countryName } from "@/lib/format";
+import { JobCard } from "../_components/JobCard";
 import { fetchCountryPageData } from "./_data/country";
 
 export const dynamic = "force-dynamic";
@@ -76,35 +77,53 @@ export default async function CountryPage({
         </p>
       </header>
 
-      {data.cities.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-foreground/15 px-8 py-16 text-center">
-          <h2 className="text-lg font-semibold">No city pages yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-foreground/60">
-            We haven&apos;t reached the 5-job threshold for any city in{" "}
-            {country} yet. Try{" "}
-            <Link href={`/jobs?country=${data.countryCode}`} className="font-medium underline-offset-2 hover:underline">
-              the full {country} listing
-            </Link>{" "}
-            instead.
-          </p>
-        </div>
-      ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.cities.map((city) => (
-            <li key={city.slug}>
+      {data.cities.length > 0 ? (
+        <section className="mb-10">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground/60">
+            Cities
+          </h2>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {data.cities.map((city) => (
+              <li key={city.slug}>
+                <Link
+                  href={`/jobs/${countryToSlug(data.countryCode)}/${city.slug}`}
+                  className="flex items-center justify-between gap-4 rounded-xl border border-foreground/10 bg-muted/40 px-4 py-3 transition-colors hover:border-foreground/30 hover:bg-muted"
+                >
+                  <span className="font-medium">{city.name}</span>
+                  <span className="text-sm text-foreground/60">
+                    {city.jobCount} {city.jobCount === 1 ? "role" : "roles"}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {data.jobs.length > 0 ? (
+        <section>
+          <div className="mb-3 flex items-end justify-between gap-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
+              {data.cities.length > 0 ? "Latest roles" : "All roles"}
+            </h2>
+            {data.totalJobs > data.jobs.length ? (
               <Link
-                href={`/jobs/${countryToSlug(data.countryCode)}/${city.slug}`}
-                className="flex items-center justify-between gap-4 rounded-xl border border-foreground/10 bg-muted/40 px-4 py-3 transition-colors hover:border-foreground/30 hover:bg-muted"
+                href={`/jobs?country=${data.countryCode}`}
+                className="text-xs text-foreground/60 underline-offset-2 hover:text-foreground hover:underline"
               >
-                <span className="font-medium">{city.name}</span>
-                <span className="text-sm text-foreground/60">
-                  {city.jobCount} {city.jobCount === 1 ? "role" : "roles"}
-                </span>
+                View all {data.totalJobs.toLocaleString()} →
               </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+            ) : null}
+          </div>
+          <ul className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+            {data.jobs.map((job) => (
+              <li key={job.id}>
+                <JobCard job={job} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }
