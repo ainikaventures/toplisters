@@ -4,6 +4,7 @@ import { fetchJobs, fetchFacets, PAGE_SIZE, type JobFilters } from "./_data/quer
 import { JobCard } from "./_components/JobCard";
 import { JobsFilters } from "./_components/JobsFilters";
 import { Pagination } from "./_components/Pagination";
+import { AdSlot } from "@/components/ads/AdSlot";
 
 export const metadata: Metadata = {
   title: "Browse jobs",
@@ -111,6 +112,7 @@ export default async function JobsPage({
                   </li>
                 ))}
               </ul>
+              <AdSlot placement="list" />
               <Pagination
                 page={page}
                 totalPages={totalPages}

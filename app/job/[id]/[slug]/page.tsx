@@ -9,6 +9,7 @@ import { ApplyButton } from "./_components/ApplyButton";
 import { JobJsonLd } from "./_components/JobJsonLd";
 import { SimilarJobs } from "./_components/SimilarJobs";
 import { fetchSimilarJobs } from "./_data/related";
+import { AdSlot } from "@/components/ads/AdSlot";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,7 @@ export default async function JobDetailPage({
         </section>
       ) : null}
 
+      <AdSlot placement="detail" />
       <SimilarJobs jobs={similar} />
     </article>
   );
