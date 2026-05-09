@@ -37,11 +37,16 @@ COPY --from=build /app/public ./public
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/lib/generated ./lib/generated
-# `prisma migrate deploy` is invoked from deploy.sh, so keep the CLI binary
-# AND its sibling @prisma/* packages (engines, internals) — without these the
-# CLI fails with `Cannot find module '@prisma/engines'` at runtime.
+# `prisma migrate deploy` is invoked from deploy.sh. Three copies are required:
+# - node_modules/prisma         — the package itself
+# - node_modules/.bin           — full bin dir, NOT just .bin/prisma. Recent
+#                                 Prisma versions ship sibling WASM files here
+#                                 (e.g. prisma_schema_build_bg.wasm) — copying
+#                                 only the `prisma` symlink leaves the CLI
+#                                 unable to find the schema parser.
+# - node_modules/@prisma        — engines, internals, etc. (CLI peer deps)
 COPY --from=build /app/node_modules/prisma ./node_modules/prisma
-COPY --from=build /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+COPY --from=build /app/node_modules/.bin ./node_modules/.bin
 COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
 
 EXPOSE 3000
