@@ -50,7 +50,7 @@ export default async function CountryPage({
   params: Promise<PageParams>;
 }) {
   const result = await load(await params);
-  if ("redirectTo" in result) redirect(result.redirectTo);
+  if ("redirectTo" in result && result.redirectTo) redirect(result.redirectTo);
   if ("redirect404" in result) notFound();
 
   const { data } = result;
