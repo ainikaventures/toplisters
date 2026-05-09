@@ -37,17 +37,15 @@ COPY --from=build /app/public ./public
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/lib/generated ./lib/generated
-# `prisma migrate deploy` is invoked from deploy.sh. Three copies are required:
-# - node_modules/prisma         — the package itself
-# - node_modules/.bin           — full bin dir, NOT just .bin/prisma. Recent
-#                                 Prisma versions ship sibling WASM files here
-#                                 (e.g. prisma_schema_build_bg.wasm) — copying
-#                                 only the `prisma` symlink leaves the CLI
-#                                 unable to find the schema parser.
-# - node_modules/@prisma        — engines, internals, etc. (CLI peer deps)
-COPY --from=build /app/node_modules/prisma ./node_modules/prisma
-COPY --from=build /app/node_modules/.bin ./node_modules/.bin
-COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
+# Pragmatic choice: replace the standalone-traced node_modules with the full
+# build-stage one. Prisma CLI (used by `prisma migrate deploy` at boot) has a
+# deep web of transitive deps (effect, @prisma/config, prisma engines, WASM
+# helpers in .bin/, etc.) that Next's tracer doesn't pick up because they're
+# CLI-only. Selective copying turns into whack-a-mole; copying everything
+# bloats the image from ~250MB to ~1.4GB but is reliable.
+# Future cleanup: split into a separate "migrator" service that uses the build
+# stage; keep web slim. Out of scope for initial deploy.
+COPY --from=build /app/node_modules ./node_modules
 
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
