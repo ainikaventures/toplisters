@@ -90,7 +90,12 @@ export async function geocode(rawLocation: string): Promise<GeocodeResult | null
 
   // 3. city without explicit country — fuzzy across all countries.
   //    Prefer highest-population match to disambiguate (e.g. "London" → GB).
-  if (!resolved && parsed.city) {
+  //    SKIPPED when a country was explicitly hinted: if Adzuna told us a
+  //    job is in GB and our cities500 table doesn't have the small UK
+  //    village, falling back to a same-named US town would silently flip
+  //    the country code. Better to fall through to country-centroid (path 4)
+  //    so the row lands at the right country, even if the pin is approximate.
+  if (!resolved && parsed.city && !parsed.countryCode) {
     const match = await prisma.city.findFirst({
       where: { OR: [{ name: parsed.city }, { asciiName: parsed.city }] },
       orderBy: { population: "desc" },

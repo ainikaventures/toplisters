@@ -205,10 +205,19 @@ class AdzunaSource implements JobSource {
         !isPredictedSalary && Boolean(item.salary_min || item.salary_max);
       const currency = COUNTRY_CURRENCY[country] ?? null;
 
-      const locationText =
+      // Always append the queried country's ISO-2 so the geocoder
+      // anchors correctly. Without it, ambiguous town names like
+      // "Delaware" (a UK village in Cornwall AND a US state) resolve
+      // to whichever has the highest-population match (US wins). Even
+      // if display_name already implies the country, appending again
+      // is harmless — the parser scans right-to-left and dedupe
+      // doesn't care.
+      const iso2 = countryToIso2(country);
+      const baseText =
         item.location?.display_name?.trim() ||
         item.location?.area?.slice().reverse().join(", ") ||
-        countryToIso2(country);
+        "";
+      const locationText = baseText ? `${baseText}, ${iso2}` : iso2;
 
       out.push({
         source: this.name,
