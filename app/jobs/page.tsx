@@ -73,7 +73,7 @@ export default async function JobsPage({
 
   const [{ jobs, total }, facets] = await Promise.all([
     fetchJobs(filters, page),
-    fetchFacets(),
+    fetchFacets(filters),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 

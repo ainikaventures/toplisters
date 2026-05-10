@@ -138,19 +138,58 @@ export interface JobsFacets {
   categories: { value: string; count: number }[];
 }
 
-/** Filter-dropdown options sourced from active rows. Cheap on small DBs. */
-export async function fetchFacets(): Promise<JobsFacets> {
+/**
+ * Filter-aware facet counts.
+ *
+ * The dropdown counts are computed under the *current* filter context
+ * MINUS the dropdown's own dimension. So picking country=DE narrows the
+ * category counts to "categories within DE" — design (0), engineering
+ * (35), etc. — instead of the global counts. Without this, users could
+ * pick (Germany, design) where each individually had a non-zero count
+ * and land on an empty result page (0 jobs in that intersection).
+ *
+ * Excluding the facet's own dimension is the standard faceted-search
+ * trick: if we filtered country counts BY country=DE, we'd only ever
+ * see Germany in the country dropdown — the user could never widen
+ * their selection. Instead we narrow by every OTHER active filter,
+ * so the country dropdown shows alternatives at their would-be counts.
+ *
+ * `q` (free-text search) is *not* applied here — facet counts are about
+ * dimensional structure of the catalogue, not the search-result
+ * narrowing. Adding FTS to facets would require raw SQL with
+ * tsvector + groupBy on the same query, which Prisma doesn't support;
+ * skipping for now.
+ */
+export async function fetchFacets(filters: JobFilters): Promise<JobsFacets> {
+  // Common base: every filter EXCEPT country and category. Each facet
+  // query then layers on the OTHER dimension's filter as appropriate.
+  const base: Prisma.JobWhereInput = { isActive: true };
+  if (filters.workMode) base.workMode = filters.workMode;
+  if (filters.jobType) base.jobType = filters.jobType;
+  if (filters.collarType) base.collarType = filters.collarType;
+  if (filters.salaryMin) base.salaryMin = { gte: filters.salaryMin };
+  if (filters.salaryMax) base.salaryMax = { lte: filters.salaryMax };
+
+  const whereForCountries: Prisma.JobWhereInput = {
+    ...base,
+    ...(filters.category ? { category: filters.category } : {}),
+  };
+  const whereForCategories: Prisma.JobWhereInput = {
+    ...base,
+    ...(filters.country ? { countryCode: filters.country } : {}),
+  };
+
   const [countries, categories] = await Promise.all([
     prisma.job.groupBy({
       by: ["countryCode"],
-      where: { isActive: true },
+      where: whereForCountries,
       _count: { _all: true },
       orderBy: { _count: { countryCode: "desc" } },
       take: 30,
     }),
     prisma.job.groupBy({
       by: ["category"],
-      where: { isActive: true },
+      where: whereForCategories,
       _count: { _all: true },
       orderBy: { _count: { category: "desc" } },
       take: 50,
