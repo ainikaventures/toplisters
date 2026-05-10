@@ -47,6 +47,7 @@ export function createJsonLdSource(config: JsonLdSiteConfig): JobSource {
     name: config.name,
     displayName: config.displayName,
     attribution: config.attribution,
+    providerUrl: config.homeUrl,
 
     isEnabled(): boolean {
       return process.env[envKey] !== "1";

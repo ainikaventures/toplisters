@@ -118,6 +118,7 @@ class JoobleSource implements JobSource {
   readonly name = "jooble";
   readonly displayName = "Jooble";
   readonly attribution = "via Jooble";
+  readonly providerUrl = "https://jooble.org";
 
   isEnabled(): boolean {
     if (process.env.DISABLE_SOURCE_JOOBLE === "1") return false;

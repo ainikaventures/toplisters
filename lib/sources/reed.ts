@@ -92,6 +92,7 @@ class ReedSource implements JobSource {
   readonly name = "reed";
   readonly displayName = "Reed";
   readonly attribution = "via Reed";
+  readonly providerUrl = "https://www.reed.co.uk";
 
   isEnabled(): boolean {
     if (process.env.DISABLE_SOURCE_REED === "1") return false;

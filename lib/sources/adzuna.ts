@@ -130,6 +130,7 @@ class AdzunaSource implements JobSource {
   readonly name = "adzuna";
   readonly displayName = "Adzuna";
   readonly attribution = "via Adzuna";
+  readonly providerUrl = "https://www.adzuna.com";
 
   isEnabled(): boolean {
     if (process.env.DISABLE_SOURCE_ADZUNA === "1") return false;

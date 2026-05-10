@@ -32,7 +32,7 @@ const STAGGER_OFFSET_MIN: Record<string, number> = {
   findwork: 30,
 };
 
-function intervalFor(sourceName: string): number {
+export function intervalFor(sourceName: string): number {
   const envKey = `INTERVAL_MIN_${sourceName.toUpperCase()}`;
   const fromEnv = Number.parseInt(process.env[envKey] ?? "", 10);
   if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;

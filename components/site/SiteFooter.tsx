@@ -31,6 +31,10 @@ export function SiteFooter() {
         About
       </Link>
       {" · "}
+      <Link href="/sources" className="hover:text-foreground">
+        Sources
+      </Link>
+      {" · "}
       <Link href="/alerts" className="hover:text-foreground">
         Email alerts
       </Link>

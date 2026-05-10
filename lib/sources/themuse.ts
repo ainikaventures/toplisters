@@ -104,6 +104,7 @@ function isInternship(levels: MuseNamed[] | undefined): boolean {
 class TheMuseSource implements JobSource {
   readonly name = "the_muse";
   readonly displayName = "The Muse";
+  readonly providerUrl = "https://www.themuse.com";
 
   isEnabled(): boolean {
     return process.env.DISABLE_SOURCE_THE_MUSE !== "1";

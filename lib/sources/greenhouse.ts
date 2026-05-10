@@ -123,6 +123,7 @@ class GreenhouseSource implements JobSource {
   readonly name = "greenhouse";
   readonly displayName = "Greenhouse";
   readonly attribution = "via the company's careers page";
+  readonly providerUrl = "https://www.greenhouse.io";
 
   isEnabled(): boolean {
     return process.env.DISABLE_SOURCE_GREENHOUSE !== "1";

@@ -51,6 +51,14 @@ export interface JobSource {
   readonly name: string;
   readonly displayName: string;
   readonly attribution?: string;
+  /**
+   * Public-facing URL for the data source — surfaced on the /sources
+   * page as a clickable attribution link. For ATS adapters that span
+   * many companies (Greenhouse, Lever) point at the ATS itself rather
+   * than any one company. Optional — sources without a public URL
+   * (e.g. internal-only feeds) just render the name.
+   */
+  readonly providerUrl?: string;
   isEnabled(): boolean;
   fetch(): Promise<unknown>;
   normalize(raw: unknown): NormalizedJob[];

@@ -75,6 +75,7 @@ class FindworkSource implements JobSource {
   readonly name = "findwork";
   readonly displayName = "Findwork";
   readonly attribution = "via Findwork";
+  readonly providerUrl = "https://findwork.dev";
 
   isEnabled(): boolean {
     if (process.env.DISABLE_SOURCE_FINDWORK === "1") return false;

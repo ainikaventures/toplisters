@@ -122,6 +122,7 @@ class LeverSource implements JobSource {
   readonly name = "lever";
   readonly displayName = "Lever";
   readonly attribution = "via the company's careers page";
+  readonly providerUrl = "https://www.lever.co";
 
   isEnabled(): boolean {
     return process.env.DISABLE_SOURCE_LEVER !== "1";
