@@ -15,7 +15,8 @@
     "worker": "tsx scripts/worker.ts",
     "enqueue": "tsx scripts/enqueue.ts",
     "reclassify-collar": "tsx scripts/reclassify-collar.ts",
-    "deactivate-appcast": "tsx scripts/deactivate-appcast.ts"
+    "deactivate-appcast": "tsx scripts/deactivate-appcast.ts",
+    "send-digests": "tsx scripts/send-digests.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

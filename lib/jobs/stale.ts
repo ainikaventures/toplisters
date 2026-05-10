@@ -1,11 +1,13 @@
 import { Queue, Worker, type Job } from "bullmq";
 import { prisma } from "@/lib/db";
 import { redis, QUEUE_NAMES } from "./queue";
+import { runDigest, type DigestStats } from "./digest";
 
 const STALE_DAYS = 30;
 
 export interface MaintenanceJobResult {
   deactivated?: number;
+  digest?: DigestStats;
   noop?: true;
 }
 
@@ -42,6 +44,12 @@ export function createMaintenanceWorker(): Worker<unknown, MaintenanceJobResult>
             data: { isActive: false },
           });
           return { deactivated: result.count };
+        }
+        case "send-digests": {
+          // Per-subscriber digest emails. Internally throttled so a
+          // misfiring scheduler can't double-send within 20 hours.
+          const stats = await runDigest();
+          return { digest: stats };
         }
         default:
           return { noop: true };

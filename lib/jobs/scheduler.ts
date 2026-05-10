@@ -70,6 +70,17 @@ export async function registerSchedules(): Promise<void> {
   );
   summary.push({ id: "maintenance:mark-stale", everyMin: 24 * 60 });
 
+  // Daily digest emails at 09:00 UTC. Aimed roughly at the start of the
+  // London / European working day; the runDigest internal throttle (20 h
+  // gap) prevents accidental double-sends if the scheduler ever fires
+  // twice. Subscribers with no new matching jobs are silently skipped.
+  await maintenanceQueue.upsertJobScheduler(
+    "maintenance:send-digests",
+    { pattern: "0 9 * * *" },
+    { name: "send-digests" },
+  );
+  summary.push({ id: "maintenance:send-digests", everyMin: 24 * 60 });
+
   console.log("Schedules registered:");
   for (const { id, everyMin } of summary) {
     console.log(`  ${id} → every ${everyMin} min`);
