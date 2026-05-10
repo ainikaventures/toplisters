@@ -5,16 +5,21 @@ import Script from "next/script";
 import { useConsent } from "@/components/consent/ConsentProvider";
 
 /**
- * Optional analytics. Both PostHog and GA4 load conditionally based on
- * env vars AND on the user's cookie consent — neither script is fetched
- * or executed until the user clicks Accept on the consent banner.
- * Decline / pending → nothing loads, no cookies are set, no network
- * calls to either vendor. EU/UK opt-in compliant by construction.
+ * Analytics architecture:
+ * - PostHog: gated entirely on consent. Script not loaded at all until accept.
+ * - GA4: uses Google Consent Mode v2. Script loads unconditionally (so Tag
+ *   Assistant / "Test your website" can detect it), but tracking is initialized
+ *   in `denied` state. No cookies are set, no PII leaves the browser, until
+ *   the user accepts the consent banner — at which point we fire
+ *   `gtag('consent', 'update', { ... granted })` and tracking begins.
+ *   EU/UK opt-in compliant; matches Google's recommended pattern.
  */
 const POSTHOG_HOST_DEFAULT = "https://eu.i.posthog.com";
 
 function PostHog() {
+  const { consent } = useConsent();
   useEffect(() => {
+    if (consent !== "granted") return;
     const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
     if (!key) return;
 
@@ -39,33 +44,60 @@ function PostHog() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [consent]);
 
   return null;
 }
 
 function GoogleAnalytics() {
   const id = process.env.NEXT_PUBLIC_GA_ID;
+  const { consent } = useConsent();
+
+  // Whenever consent changes, sync to gtag's Consent Mode.
+  useEffect(() => {
+    if (!id) return;
+    if (typeof window === "undefined") return;
+    const w = window as unknown as { gtag?: (...args: unknown[]) => void };
+    if (!w.gtag) return;
+    const granted = consent === "granted";
+    w.gtag("consent", "update", {
+      analytics_storage: granted ? "granted" : "denied",
+      ad_storage: granted ? "granted" : "denied",
+      ad_user_data: granted ? "granted" : "denied",
+      ad_personalization: granted ? "granted" : "denied",
+    });
+  }, [id, consent]);
+
   if (!id) return null;
   return (
     <>
+      {/* Bootstrap: define gtag stub + set Consent Mode v2 default to denied,
+          THEN load gtag.js. The stub queues events into dataLayer; gtag.js
+          processes the queue in order, so consent default is honored. */}
+      <Script id="ga-bootstrap" strategy="afterInteractive">{`
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent', 'default', {
+  analytics_storage: 'denied',
+  ad_storage: 'denied',
+  ad_user_data: 'denied',
+  ad_personalization: 'denied',
+  wait_for_update: 500,
+});
+gtag('js', new Date());
+gtag('config', '${id}', { send_page_view: true });
+`}</Script>
       <Script
         src={`https://www.googletagmanager.com/gtag/js?id=${id}`}
         strategy="afterInteractive"
       />
-      <Script id="ga-init" strategy="afterInteractive">{`
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${id}', { send_page_view: true });
-`}</Script>
     </>
   );
 }
 
 export function Analytics() {
-  const { consent } = useConsent();
-  if (consent !== "granted") return null;
+  // GA4 loads unconditionally (Consent Mode v2 controls actual tracking).
+  // PostHog gates internally on consent.
   return (
     <>
       <PostHog />
