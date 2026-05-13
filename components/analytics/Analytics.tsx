@@ -13,6 +13,10 @@ import { useConsent } from "@/components/consent/ConsentProvider";
  *   the user accepts the consent banner — at which point we fire
  *   `gtag('consent', 'update', { ... granted })` and tracking begins.
  *   EU/UK opt-in compliant; matches Google's recommended pattern.
+ * - Microsoft Clarity: session recordings + heatmaps. No Consent Mode
+ *   equivalent, and it records pixel-level interactions, so it's fully
+ *   consent-gated like PostHog — the script is not injected at all until
+ *   the user accepts.
  */
 const POSTHOG_HOST_DEFAULT = "https://eu.i.posthog.com";
 
@@ -95,13 +99,29 @@ gtag('config', '${id}', { send_page_view: true });
   );
 }
 
+function Clarity() {
+  const id = process.env.NEXT_PUBLIC_CLARITY_ID;
+  const { consent } = useConsent();
+  if (!id || consent !== "granted") return null;
+  return (
+    <Script id="ms-clarity" strategy="afterInteractive">{`
+(function(c,l,a,r,i,t,y){
+  c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+  t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+  y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+})(window, document, "clarity", "script", "${id}");
+`}</Script>
+  );
+}
+
 export function Analytics() {
   // GA4 loads unconditionally (Consent Mode v2 controls actual tracking).
-  // PostHog gates internally on consent.
+  // PostHog + Clarity gate internally on consent.
   return (
     <>
       <PostHog />
       <GoogleAnalytics />
+      <Clarity />
     </>
   );
 }

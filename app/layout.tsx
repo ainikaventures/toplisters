@@ -31,6 +31,11 @@ export const metadata: Metadata = {
     // Does NOT load adsbygoogle.js — that's done by AdsLoader after consent
     // (preserves the consent-gated design from commit 3a191aa).
     "google-adsense-account": "ca-pub-2028217968551720",
+    // Bing Webmaster Tools site ownership verification. Static meta tag,
+    // no cookies / no JS, so it lives here rather than in the consent-gated
+    // Analytics component. Pair with the XML sitemap already submitted at
+    // https://www.bing.com/webmasters → toplisters.xyz.
+    "msvalidate.01": "37732678DBE45B49903B790E524316AC",
   },
 };
 
