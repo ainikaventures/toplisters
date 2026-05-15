@@ -209,6 +209,25 @@ model Subscriber {
   @@map("subscribers")
 }
 
+// First-party visitor analytics (spec amendment 2026-05-15).
+// Cookieless: `visitorHash` = sha256(ip + ua + day-bucket + PAGEVIEW_SALT)
+// truncated to 16 hex chars, so the same person has a stable id within a
+// UTC day and a fresh one tomorrow. No IP/UA stored at rest, no cookies
+// — feeds the /analytics/audience country-shape dashboard via
+// COUNT(DISTINCT visitor_hash) for "visitors" and COUNT(*) for "visits".
+model Pageview {
+  id           BigInt   @id @default(autoincrement())
+  occurredAt   DateTime @default(now()) @map("occurred_at")
+  countryCode  String?  @map("country_code") @db.Char(2)
+  path         String
+  visitorHash  String   @map("visitor_hash") @db.Char(16)
+
+  @@index([occurredAt])
+  @@index([countryCode, occurredAt])
+  @@index([visitorHash])
+  @@map("pageviews")
+}
+
 // Cache of raw_location_string → resolved coordinates (spec line 70).
 model GeocodeCache {
   id          Int      @id @default(autoincrement())

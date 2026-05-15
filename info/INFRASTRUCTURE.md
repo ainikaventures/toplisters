@@ -113,6 +113,7 @@ Track major spec changes here so future agents understand the history:
 - **2026-05-08:** Amended container naming from `toplisters_*` (underscores) to `toplisters-*` (hyphens) to match Docker Compose convention.
 - **2026-05-08:** Amended backup target from Cloudflare R2 to Backblaze B2 (already integrated via rclone). R2 reserved for future user-facing assets where free egress matters; B2 is correct for write-heavy, read-rare backup workloads.
 - **2026-05-08:** Pinned Redis DB index to 1 (Toplisters) / 2 (SplitAI), DB 0 reserved unused. Each app has its own container so the requirement is currently moot, but the convention preserves optionality if Redis is ever consolidated to managed instance.
+- **2026-05-15:** Added first-party visitor analytics (cookieless). New `pageviews` table fed by `/api/track`; country comes from Cloudflare's `CF-IPCountry` header, visitor identity is a daily-rotating sha256(ip+ua+day+`PAGEVIEW_SALT`) truncated to 16 chars. No raw IP/UA at rest; no consent banner needed (legitimate-interest aggregated counting). Powers `/analytics/audience` country-shape dashboard. GA4/PostHog/Clarity remain wired for marketing-funnel use cases.
 
 ## When in doubt
 

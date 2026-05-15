@@ -55,9 +55,17 @@ export default async function AnalyticsPage({
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
         <header className="mb-8 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Analytics
-            </h1>
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                Analytics
+              </h1>
+              <Link
+                href="/analytics/audience"
+                className="text-xs text-foreground/60 underline-offset-2 hover:text-foreground hover:underline"
+              >
+                View audience by country →
+              </Link>
+            </div>
             <p className="max-w-2xl text-sm text-foreground/70">
               Live snapshot of the dataset — what&apos;s being posted where,
               by whom, and how the volume has moved over the last

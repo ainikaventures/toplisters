@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Analytics } from "@/components/analytics/Analytics";
+import { TrackPageview } from "@/components/analytics/TrackPageview";
 import { AdsLoader } from "@/components/ads/AdsLoader";
 import { ConsentProvider } from "@/components/consent/ConsentProvider";
 import { CookieBanner } from "@/components/consent/CookieBanner";
@@ -61,6 +62,7 @@ export default function RootLayout({
           <ThemeProvider>{children}</ThemeProvider>
           <CookieBanner />
           <Analytics />
+          <TrackPageview />
           <AdsLoader />
         </ConsentProvider>
       </body>
