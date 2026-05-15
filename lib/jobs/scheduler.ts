@@ -81,6 +81,19 @@ export async function registerSchedules(): Promise<void> {
   );
   summary.push({ id: "maintenance:send-digests", everyMin: 24 * 60 });
 
+  // Social auto-posting fires three times a day (08:30, 12:30, 17:30
+  // UTC — morning EU, mid-EU/morning-US, end-of-EU-day). Each tick
+  // picks one job per enabled platform, so the default daily caps
+  // (FB:3, Telegram:5, Twitter:3) line up with this cadence. A
+  // platform with no creds (SOCIAL_*_ENABLED!=1) is a silent no-op,
+  // so this schedule is safe to register before any tokens exist.
+  await maintenanceQueue.upsertJobScheduler(
+    "maintenance:post-to-social",
+    { pattern: "30 8,12,17 * * *" },
+    { name: "post-to-social" },
+  );
+  summary.push({ id: "maintenance:post-to-social", everyMin: 8 * 60 });
+
   console.log("Schedules registered:");
   for (const { id, everyMin } of summary) {
     console.log(`  ${id} → every ${everyMin} min`);

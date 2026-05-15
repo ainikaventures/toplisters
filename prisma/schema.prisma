@@ -107,6 +107,7 @@ model Job {
 
   clicks      JobClick[]
   submission  JobSubmission?
+  socialPosts SocialPost[]
 
   @@unique([source, sourceId])
   @@index([countryCode, isActive])
@@ -207,6 +208,32 @@ model Subscriber {
 
   @@index([confirmedAt, unsubscribedAt])
   @@map("subscribers")
+}
+
+// Auto-post audit log (spec amendment 2026-05-15). One row per
+// (job, platform) — the @@unique([jobId, platform]) is the dedupe gate
+// so a single job is never reposted to the same platform. Stores the
+// platform-side post id + url for analytics and manual deletion.
+model SocialPost {
+  id           String   @id @default(cuid())
+  jobId        String   @map("job_id")
+  job          Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  /// Free-form platform key matching SocialPoster.platform — currently
+  /// "facebook" | "telegram" | "twitter". Kept as a string (not an enum)
+  /// so adding a platform is one file + env vars, no migration.
+  platform     String
+  /// "posted" | "failed" | "skipped" — "skipped" rows are written when
+  /// the curator deliberately passes (quality gate, daily cap) so we
+  /// don't re-evaluate the same job on the next run.
+  status       String
+  externalId   String?  @map("external_id")
+  externalUrl  String?  @map("external_url")
+  errorMessage String?  @map("error_message")
+  postedAt     DateTime @default(now()) @map("posted_at")
+
+  @@unique([jobId, platform])
+  @@index([platform, postedAt])
+  @@map("social_posts")
 }
 
 // First-party visitor analytics (spec amendment 2026-05-15).

@@ -2,12 +2,14 @@ import { Queue, Worker, type Job } from "bullmq";
 import { prisma } from "@/lib/db";
 import { redis, QUEUE_NAMES } from "./queue";
 import { runDigest, type DigestStats } from "./digest";
+import { runSocialPosting, type RunStats as SocialRunStats } from "@/lib/social/runner";
 
 const STALE_DAYS = 30;
 
 export interface MaintenanceJobResult {
   deactivated?: number;
   digest?: DigestStats;
+  social?: SocialRunStats[];
   noop?: true;
 }
 
@@ -50,6 +52,13 @@ export function createMaintenanceWorker(): Worker<unknown, MaintenanceJobResult>
           // misfiring scheduler can't double-send within 20 hours.
           const stats = await runDigest();
           return { digest: stats };
+        }
+        case "post-to-social": {
+          // Auto-post N jobs to each enabled platform. The unique
+          // (job_id, platform) constraint + daily cap inside the
+          // runner make this safe to call multiple times a day.
+          const stats = await runSocialPosting();
+          return { social: stats };
         }
         default:
           return { noop: true };

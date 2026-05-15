@@ -16,7 +16,8 @@
     "enqueue": "tsx scripts/enqueue.ts",
     "reclassify-collar": "tsx scripts/reclassify-collar.ts",
     "deactivate-appcast": "tsx scripts/deactivate-appcast.ts",
-    "send-digests": "tsx scripts/send-digests.ts"
+    "send-digests": "tsx scripts/send-digests.ts",
+    "post-to-social": "tsx scripts/post-to-social.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -47,6 +48,7 @@
     "tailwind-merge": "^3.5.0",
     "topojson-client": "^3.1.0",
     "tw-animate-css": "^1.4.0",
+    "twitter-api-v2": "^1.29.0",
     "world-atlas": "^2.0.2"
   },
   "devDependencies": {
