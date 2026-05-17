@@ -23,7 +23,10 @@ echo "→ Building images (web, worker)…"
 $COMPOSE build web worker
 
 echo "→ Starting / refreshing infra (postgres, redis, caddy)…"
-$COMPOSE up -d postgres redis caddy
+# Note: caddy is intentionally NOT named here — on this VPS it's profile-gated
+# off in docker-compose.override.yml (the host Caddy serves :80/:443). Naming
+# `caddy` explicitly would bypass the profile and collide on port 80.
+$COMPOSE up -d postgres redis
 
 echo "→ Waiting for postgres to be healthy…"
 until $COMPOSE exec -T postgres pg_isready -U "${POSTGRES_USER:-toplisters}" -p 5433 >/dev/null 2>&1; do
