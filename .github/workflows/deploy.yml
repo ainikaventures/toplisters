@@ -1,24 +1,20 @@
 # Production deploy via SSH. Triggers `deploy.sh` on the server, which
 # does git pull → build → migrate → roll containers → health check.
 #
-# ── BEFORE ENABLING THE PUSH TRIGGER ──────────────────────────────────────
-# Add these GitHub repository secrets (Settings → Secrets and variables →
-# Actions → New repository secret):
+# Auto-runs on push to main. Can also be fired manually from the Actions tab.
 #
+# Required repo secrets (Settings → Secrets and variables → Actions):
 #   PROD_HOST       e.g. 1.2.3.4 or server.toplisters.xyz
 #   PROD_USER       deploy user with sudo / docker rights
 #   PROD_SSH_KEY    private key matching one in ~/.ssh/authorized_keys on server
 #   PROD_SSH_PORT   (optional, default 22)
-#
-# Then uncomment the `push:` trigger below. Until then, the workflow is
-# manual-only — Actions tab → "Deploy to Production" → "Run workflow".
 
 name: Deploy to Production
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [main]
+  push:
+    branches: [main]
 
 concurrency:
   group: production-deploy
@@ -42,6 +38,6 @@ jobs:
           port: ${{ secrets.PROD_SSH_PORT || 22 }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
-            cd /srv/toplisters
+            cd /opt/toplisters
             ./deploy.sh
           script_stop: true
