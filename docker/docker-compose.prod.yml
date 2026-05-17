@@ -25,6 +25,11 @@ services:
     env_file: ../.env
     environment:
       NODE_ENV: production
+      # Next.js standalone reads HOSTNAME and binds to it. Docker sets it to
+      # the container ID by default, so the server only listens on its own
+      # hostname — `curl localhost:3000` then fails (incl. the in-image
+      # HEALTHCHECK). Pin to 0.0.0.0 so loopback + container IP both work.
+      HOSTNAME: 0.0.0.0
       DATABASE_URL: postgresql://toplisters_app:${TOPLISTERS_APP_PASSWORD}@postgres:5433/${POSTGRES_DB:-toplisters}?schema=public
       MIGRATION_DATABASE_URL: postgresql://${POSTGRES_USER:-toplisters}:${POSTGRES_PASSWORD}@postgres:5433/${POSTGRES_DB:-toplisters}?schema=public
       REDIS_URL: redis://redis:6379/1
