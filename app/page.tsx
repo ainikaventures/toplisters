@@ -11,6 +11,13 @@ const GlobeView = nextDynamic(
 export const metadata: Metadata = {
   description:
     "A globally-aware job board with an interactive 3D globe at the centre — discover roles by clicking your region.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Toplisters.xyz — Jobs, mapped to the world",
+    description:
+      "Interactive 3D globe job board — pick a region, see open roles.",
+    url: "/",
+  },
 };
 
 // Always re-render so freshly-aggregated jobs show up immediately.

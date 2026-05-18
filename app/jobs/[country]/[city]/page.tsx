@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { JobCard } from "@/app/jobs/_components/JobCard";
 import { cityToSlug, countryToSlug, resolveCountrySlug } from "@/lib/locations";
@@ -7,6 +6,7 @@ import { countryName } from "@/lib/format";
 import { fetchLocationPageData, resolveCity } from "./_data/location";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
+import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -53,12 +53,16 @@ export async function generateMetadata({
   }
   const { data, canonicalCountrySlug, canonicalCitySlug } = result;
   const country = countryName(data.countryCode);
+  const jobsLabel = data.stats.totalJobs === 1 ? "job" : "jobs";
+  const rolesLabel = data.stats.totalJobs === 1 ? "role" : "roles";
+  const url = `${SITE_URL}/jobs/${canonicalCountrySlug}/${canonicalCitySlug}`;
+  const title = `${data.stats.totalJobs} ${jobsLabel} in ${data.city}, ${country}`;
+  const description = `Browse ${data.stats.totalJobs.toLocaleString()} active ${rolesLabel} in ${data.city}, ${country}. Updated daily from public job boards.`;
   return {
-    title: `${data.stats.totalJobs} jobs in ${data.city}, ${country}`,
-    description: `Browse ${data.stats.totalJobs} active roles in ${data.city}, ${country}. Updated daily from public job boards.`,
-    alternates: {
-      canonical: `${SITE_URL}/jobs/${canonicalCountrySlug}/${canonicalCitySlug}`,
-    },
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url },
   };
 }
 
@@ -94,18 +98,14 @@ export default async function LocationPage({
     <div className="mx-auto max-w-7xl px-6 py-10">
       <BreadcrumbJsonLd items={breadcrumbs} />
       <ItemListJsonLd items={listItems} />
-      <nav className="mb-6 flex items-center gap-2 text-xs text-foreground/60">
-        <Link href="/jobs" className="hover:text-foreground">All jobs</Link>
-        <span>/</span>
-        <Link
-          href={`/jobs/${result.canonicalCountrySlug}`}
-          className="hover:text-foreground"
-        >
-          {country}
-        </Link>
-        <span>/</span>
-        <span className="text-foreground">{data.city}</span>
-      </nav>
+      <Breadcrumbs
+        className="mb-6"
+        items={[
+          { name: "All jobs", href: "/jobs" },
+          { name: country, href: `/jobs/${result.canonicalCountrySlug}` },
+          { name: data.city, href: `/jobs/${result.canonicalCountrySlug}/${result.canonicalCitySlug}` },
+        ]}
+      />
 
       <header className="mb-8 flex flex-col gap-3">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">

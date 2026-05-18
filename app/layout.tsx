@@ -20,13 +20,30 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Toplisters.xyz — Jobs, mapped to the world",
     template: "%s · Toplisters.xyz",
   },
   description:
     "A globally-aware job board. Discover roles on an interactive 3D globe — blue-collar to white-collar, free to post.",
+  // Per-page metadata layers on top of these defaults (per-page openGraph
+  // merges, twitter inherits unless re-declared). siteName + locale are
+  // set once here and inherited everywhere.
+  openGraph: {
+    type: "website",
+    siteName: "Toplisters",
+    locale: "en_US",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/opengraph-image"],
+  },
   other: {
     // Google AdSense ownership verification. Renders as
     // <meta name="google-adsense-account" content="ca-pub-..." />.

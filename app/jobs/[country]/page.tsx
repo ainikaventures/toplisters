@@ -7,6 +7,7 @@ import { JobCard } from "../_components/JobCard";
 import { fetchCountryPageData } from "./_data/country";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
+import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -41,10 +42,22 @@ export async function generateMetadata({
     return { title: "Country jobs" };
   }
   const country = countryName(result.data.countryCode);
+  const jobsLabel = result.data.totalJobs === 1 ? "job" : "jobs";
+  const rolesLabel = result.data.totalJobs === 1 ? "role" : "roles";
+  const citiesPhrase =
+    result.data.cities.length === 1
+      ? "1 city"
+      : `${result.data.cities.length} cities`;
+  const url = `${SITE_URL}/jobs/${result.canonical}`;
   return {
-    title: `${result.data.totalJobs} jobs in ${country}`,
-    description: `Browse ${result.data.totalJobs} active roles across ${result.data.cities.length} cities in ${country}.`,
-    alternates: { canonical: `${SITE_URL}/jobs/${result.canonical}` },
+    title: `${result.data.totalJobs} ${jobsLabel} in ${country}`,
+    description: `Browse ${result.data.totalJobs.toLocaleString()} active ${rolesLabel} across ${citiesPhrase} in ${country}.`,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${result.data.totalJobs} ${jobsLabel} in ${country}`,
+      description: `Browse ${result.data.totalJobs.toLocaleString()} active ${rolesLabel} across ${citiesPhrase} in ${country}.`,
+      url,
+    },
   };
 }
 
@@ -76,11 +89,13 @@ export default async function CountryPage({
     <div className="mx-auto max-w-5xl px-6 py-10">
       <BreadcrumbJsonLd items={breadcrumbs} />
       <ItemListJsonLd items={listItems} />
-      <nav className="mb-6 flex items-center gap-2 text-xs text-foreground/60">
-        <Link href="/jobs" className="hover:text-foreground">All jobs</Link>
-        <span>/</span>
-        <span className="text-foreground">{country}</span>
-      </nav>
+      <Breadcrumbs
+        className="mb-6"
+        items={[
+          { name: "All jobs", href: "/jobs" },
+          { name: country, href: `/jobs/${countrySlug}` },
+        ]}
+      />
 
       <header className="mb-8 flex flex-col gap-3">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">

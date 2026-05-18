@@ -11,6 +11,7 @@ import { SimilarJobs } from "./_components/SimilarJobs";
 import { fetchSimilarJobs } from "./_data/related";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
+import { Breadcrumbs, type BreadcrumbItem } from "@/components/seo/Breadcrumbs";
 import { cityToSlug, countryToSlug } from "@/lib/locations";
 import { countryName } from "@/lib/format";
 
@@ -27,6 +28,30 @@ async function getJob(id: string) {
   return prisma.job.findUnique({ where: { id } });
 }
 
+/**
+ * Build a clean SERP meta description from the raw description text.
+ * Sources often ship descriptions that start with HTML noise, ALL-CAPS
+ * headers, bullet markers, or a stray "Apply now" — none of which are
+ * compelling first 155 chars. Steps:
+ *   1. collapse whitespace
+ *   2. strip leading non-letter/-digit junk
+ *   3. cap at 155 chars, breaking at the last sentence or word end
+ */
+function jobMetaDescription(text: string, fallback: string): string {
+  const cleaned = text
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^[^\p{L}\p{N}]+/u, "")
+    .trim();
+  if (cleaned.length === 0) return fallback;
+  if (cleaned.length <= 155) return cleaned;
+  const slice = cleaned.slice(0, 155);
+  const sentenceEnd = slice.lastIndexOf(". ");
+  if (sentenceEnd >= 80) return slice.slice(0, sentenceEnd + 1);
+  const wordEnd = slice.lastIndexOf(" ");
+  return (wordEnd >= 80 ? slice.slice(0, wordEnd) : slice) + "…";
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -36,21 +61,20 @@ export async function generateMetadata({
   const job = await getJob(id);
   if (!job) return { title: "Job not found" };
 
-  const description = job.descriptionText.slice(0, 155).trim() ||
-    `${job.title} at ${job.companyName}`;
+  const fallbackDesc = `${job.title} at ${job.companyName}`;
+  const description = jobMetaDescription(job.descriptionText, fallbackDesc);
   const location = locationLabel({ city: job.city, countryCode: job.countryCode });
+  const salary = salaryLabel(job);
+  const canonical = `${SITE_URL}/job/${job.id}/${slugify(job.title)}`;
 
   return {
     title: `${job.title} — ${job.companyName}`,
     description,
-    alternates: {
-      canonical: `${SITE_URL}/job/${job.id}/${slugify(job.title)}`,
-    },
+    alternates: { canonical },
     openGraph: {
       title: `${job.title} at ${job.companyName}`,
-      description: `${location}${salaryLabel(job) ? ` · ${salaryLabel(job)}` : ""}`,
-      type: "website",
-      url: `${SITE_URL}/job/${job.id}/${slugify(job.title)}`,
+      description: `${location}${salary ? ` · ${salary}` : ""}. ${description}`.slice(0, 200),
+      url: canonical,
     },
   };
 }
@@ -76,33 +100,40 @@ export default async function JobDetailPage({
   const similar = await fetchSimilarJobs(job);
 
   // Breadcrumb ladder. ZZ ("unknown") jobs degrade to a 2-step trail so
-  // we don't link to a nonexistent country page.
-  const breadcrumbs = [
-    { name: "Home", url: `${SITE_URL}/` },
-    { name: "Browse jobs", url: `${SITE_URL}/jobs` },
+  // we don't link to a nonexistent country page. The visible component
+  // and the BreadcrumbJsonLd share the same trail (different href shapes
+  // — JSON-LD wants absolute URLs, visible nav wants relative paths).
+  const trail: BreadcrumbItem[] = [
+    { name: "All jobs", href: "/jobs" },
   ];
   if (job.countryCode && job.countryCode !== "ZZ") {
     const countrySlug = countryToSlug(job.countryCode);
-    breadcrumbs.push({
+    trail.push({
       name: countryName(job.countryCode),
-      url: `${SITE_URL}/jobs/${countrySlug}`,
+      href: `/jobs/${countrySlug}`,
     });
     if (job.city) {
-      breadcrumbs.push({
+      trail.push({
         name: job.city,
-        url: `${SITE_URL}/jobs/${countrySlug}/${cityToSlug(job.city)}`,
+        href: `/jobs/${countrySlug}/${cityToSlug(job.city)}`,
       });
     }
   }
-  breadcrumbs.push({
+  trail.push({
     name: job.title,
-    url: `${SITE_URL}/job/${job.id}/${canonicalSlug}`,
+    href: `/job/${job.id}/${canonicalSlug}`,
   });
+
+  const breadcrumbs = [
+    { name: "Home", url: `${SITE_URL}/` },
+    ...trail.map((t) => ({ name: t.name, url: `${SITE_URL}${t.href}` })),
+  ];
 
   return (
     <article className="mx-auto max-w-4xl px-6 py-10">
       <JobJsonLd job={job} siteUrl={SITE_URL} />
       <BreadcrumbJsonLd items={breadcrumbs} />
+      <Breadcrumbs className="mb-6" items={trail} />
 
       <HeroBanner companyName={job.companyName} logoUrl={job.companyLogoUrl} />
 
