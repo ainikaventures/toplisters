@@ -18,6 +18,24 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Generate Prisma client (writes to lib/generated/prisma per schema config).
 RUN npx prisma generate
+
+# NEXT_PUBLIC_* values are inlined into the client bundle at `next build`
+# time. Without these ARGs they'd be undefined in production — that's
+# what was breaking PostHog/GA4/Clarity in the deployed image even when
+# the values were present in .env (env_file applies only at runtime,
+# not during the build stage). docker-compose.prod.yml passes these
+# through from .env via the `args:` block.
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_POSTHOG_KEY
+ARG NEXT_PUBLIC_POSTHOG_HOST
+ARG NEXT_PUBLIC_GA_ID
+ARG NEXT_PUBLIC_CLARITY_ID
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
+    NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
+    NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID \
+    NEXT_PUBLIC_CLARITY_ID=$NEXT_PUBLIC_CLARITY_ID
+
 # next build creates .next/standalone with the server + traced deps.
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
