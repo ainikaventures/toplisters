@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import type { GlobeJob } from "@/app/_data/globe";
+import type { ClusterJob } from "@/app/api/globe/cluster/route";
 
 interface Props {
   open: boolean;
   title: string;
   subtitle: string;
-  jobs: GlobeJob[];
+  jobs: ClusterJob[];
+  loading?: boolean;
   onClose: () => void;
 }
 
@@ -16,7 +17,7 @@ interface Props {
  * uses translate-x for the open/closed transition so it stays GPU-cheap.
  * Backdrop on the left so a click anywhere off-panel closes it.
  */
-export function JobPanel({ open, title, subtitle, jobs, onClose }: Props) {
+export function JobPanel({ open, title, subtitle, jobs, loading, onClose }: Props) {
   return (
     <>
       <div
@@ -50,6 +51,11 @@ export function JobPanel({ open, title, subtitle, jobs, onClose }: Props) {
         </header>
 
         <ul className="flex-1 divide-y divide-foreground/5 overflow-y-auto">
+          {loading && jobs.length === 0 ? (
+            <li className="px-6 py-8 text-center text-xs text-foreground/50">
+              Loading roles…
+            </li>
+          ) : null}
           {jobs.map((job) => (
             <li key={job.id}>
               <Link

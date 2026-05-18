@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { GlobeCluster, GlobeJob } from "@/app/_data/globe";
+import type { GlobeCluster } from "@/app/_data/globe";
+import type { ClusterJob } from "@/app/api/globe/cluster/route";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { JobPanel } from "./JobPanel";
 
 interface Props {
   clusters: GlobeCluster[];
-  jobs: GlobeJob[];
+  totalJobs: number;
 }
 
 interface SelectedCluster {
   cluster: GlobeCluster;
-  jobs: GlobeJob[];
+  jobs: ClusterJob[];
+  loading: boolean;
 }
 
 interface GeoIpResponse {
@@ -46,27 +48,41 @@ function countryLabel(code: string) {
  * the "Use my location" button asks for browser geolocation (more
  * accurate, opt-in). Both fade to a sensible default if they fail.
  */
-export function GlobeView({ clusters, jobs }: Props) {
+export function GlobeView({ clusters, totalJobs }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<unknown>(null);
   const [selected, setSelected] = useState<SelectedCluster | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
-  const jobsByCluster = useMemo(() => {
-    const map = new Map<string, GlobeJob[]>();
-    for (const job of jobs) {
-      const key = `${job.countryCode}:${job.city ?? "_"}`;
-      const existing = map.get(key);
-      if (existing) existing.push(job);
-      else map.set(key, [job]);
-    }
-    return map;
-  }, [jobs]);
-
   const maxCount = useMemo(
     () => clusters.reduce((m, c) => Math.max(m, c.jobCount), 1),
     [clusters],
   );
+
+  // Fetch a cluster's jobs from /api/globe/cluster on demand. The cluster
+  // payload is no longer shipped in the SSR'd HTML (which was driving the
+  // page weight past 30 MB at current job volumes).
+  const openCluster = async (cluster: GlobeCluster) => {
+    setSelected({ cluster, jobs: [], loading: true });
+    const url = new URL("/api/globe/cluster", window.location.origin);
+    url.searchParams.set("country", cluster.countryCode);
+    if (cluster.city) url.searchParams.set("city", cluster.city);
+    try {
+      const r = await fetch(url, { cache: "default" });
+      if (!r.ok) {
+        setSelected({ cluster, jobs: [], loading: false });
+        return;
+      }
+      const data = (await r.json()) as { jobs: ClusterJob[] };
+      setSelected((current) =>
+        current && current.cluster.id === cluster.id
+          ? { cluster, jobs: data.jobs, loading: false }
+          : current,
+      );
+    } catch {
+      setSelected({ cluster, jobs: [], loading: false });
+    }
+  };
 
   // Mount Globe.gl once on the client.
   useEffect(() => {
@@ -116,9 +132,7 @@ export function GlobeView({ clusters, jobs }: Props) {
           return `<div style="background:rgba(15,15,15,0.9);color:#fff;padding:8px 12px;border-radius:8px;font:500 13px system-ui">${place}<br/><span style="opacity:0.7;font-size:11px">${c.jobCount} ${c.jobCount === 1 ? "role" : "roles"}</span></div>`;
         })
         .onPointClick((d: unknown) => {
-          const cluster = d as GlobeCluster;
-          const matched = jobsByCluster.get(cluster.id) ?? [];
-          setSelected({ cluster, jobs: matched });
+          void openCluster(d as GlobeCluster);
         });
 
       // Auto-rotate slowly until the user interacts.
@@ -162,7 +176,11 @@ export function GlobeView({ clusters, jobs }: Props) {
       if (g?._destructor) g._destructor();
       globeRef.current = null;
     };
-  }, [clusters, jobsByCluster, maxCount]);
+    // openCluster is captured by reference inside onPointClick; the dep
+    // list intentionally tracks the values that drive globe rendering, not
+    // the click callback closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clusters, maxCount]);
 
   const useBrowserLocation = () => {
     if (!navigator.geolocation) {
@@ -207,7 +225,7 @@ export function GlobeView({ clusters, jobs }: Props) {
         </h1>
         <p className="pointer-events-auto max-w-md text-center text-xs text-white/70 sm:text-sm">
           {clusters.length.toLocaleString()} cities ·{" "}
-          {jobs.length.toLocaleString()} active roles. Tap a marker to open
+          {totalJobs.toLocaleString()} active roles. Tap a marker to open
           listings.
         </p>
         <a
@@ -246,6 +264,7 @@ export function GlobeView({ clusters, jobs }: Props) {
         title={selectedTitle}
         subtitle={selectedSubtitle}
         jobs={selected?.jobs ?? []}
+        loading={selected?.loading ?? false}
         onClose={() => setSelected(null)}
       />
     </div>

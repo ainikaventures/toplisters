@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Landing() {
-  const { clusters, jobs } = await fetchGlobeData();
-  return <GlobeView clusters={clusters} jobs={jobs} />;
+  const { clusters, totalJobs } = await fetchGlobeData();
+  return <GlobeView clusters={clusters} totalJobs={totalJobs} />;
 }
 
 function GlobeFallback() {
