@@ -16,6 +16,16 @@ const SALARY_UNIT: Record<string, string> = {
   yearly: "YEAR",
 };
 
+// Conservative months-of-experience mapping. Google's schema validator
+// accepts any non-negative integer; the values here are typical floors
+// for each level so the rich result doesn't over-promise seniority.
+const EXPERIENCE_MONTHS: Record<string, number> = {
+  entry: 0,
+  mid: 24,
+  senior: 60,
+  exec: 120,
+};
+
 /**
  * JSON-LD JobPosting (schema.org) — required for Google for Jobs eligibility.
  * Only fields we have are emitted; partial data is accepted, missing optional
@@ -33,6 +43,13 @@ export function JobJsonLd({ job, siteUrl }: { job: Job; siteUrl: string }) {
     title: job.title,
     description: job.descriptionHtml || job.descriptionText,
     datePosted: job.postedDate.toISOString(),
+    // Per Google: stable, source-attributable id. Helps consolidate
+    // the same posting if it's also picked up from other indexers.
+    identifier: {
+      "@type": "PropertyValue",
+      name: "Toplisters",
+      value: job.id,
+    },
     hiringOrganization: {
       "@type": "Organization",
       name: job.companyName,
@@ -44,6 +61,31 @@ export function JobJsonLd({ job, siteUrl }: { job: Job; siteUrl: string }) {
 
   if (job.closingDate) json.validThrough = job.closingDate.toISOString();
   if (employmentType) json.employmentType = employmentType;
+
+  // Industry — free-text string per schema.org; we send the category as-is.
+  // Drops the value when it's our default "other" sentinel.
+  if (job.category && job.category !== "other") {
+    json.industry = job.category;
+  }
+
+  // experienceRequirements drives Google's "entry-level" / "5+ years" SERP
+  // chip. Only emitted when we have a non-unknown signal so we don't
+  // misrepresent.
+  if (job.experienceLevel && job.experienceLevel !== "unknown") {
+    const months = EXPERIENCE_MONTHS[job.experienceLevel];
+    if (typeof months === "number") {
+      json.experienceRequirements = {
+        "@type": "OccupationalExperienceRequirements",
+        monthsOfExperience: months,
+      };
+    }
+  }
+
+  // Skills — comma-separated string (schema.org accepts plain text or
+  // DefinedTerm; the string form is what Google for Jobs documents).
+  if (job.skills.length > 0) {
+    json.skills = job.skills.join(", ");
+  }
 
   // Location: if remote, declare TELECOMMUTE and use country as applicant
   // requirement. Otherwise emit a postal address.
