@@ -5,6 +5,9 @@ import { countryToSlug, resolveCountrySlug } from "@/lib/locations";
 import { countryName } from "@/lib/format";
 import { JobCard } from "../_components/JobCard";
 import { fetchCountryPageData } from "./_data/country";
+import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
+import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
+import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
 
@@ -56,9 +59,23 @@ export default async function CountryPage({
 
   const { data } = result;
   const country = countryName(data.countryCode);
+  const countrySlug = countryToSlug(data.countryCode);
+
+  const breadcrumbs = [
+    { name: "Home", url: `${SITE_URL}/` },
+    { name: "Browse jobs", url: `${SITE_URL}/jobs` },
+    { name: country, url: `${SITE_URL}/jobs/${countrySlug}` },
+  ];
+  const listItems = data.jobs.map((job, i) => ({
+    position: i + 1,
+    url: `${SITE_URL}/job/${job.id}/${slugify(job.title)}`,
+    name: job.title,
+  }));
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
+      <BreadcrumbJsonLd items={breadcrumbs} />
+      <ItemListJsonLd items={listItems} />
       <nav className="mb-6 flex items-center gap-2 text-xs text-foreground/60">
         <Link href="/jobs" className="hover:text-foreground">All jobs</Link>
         <span>/</span>

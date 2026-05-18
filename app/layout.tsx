@@ -7,6 +7,7 @@ import { TrackPageview } from "@/components/analytics/TrackPageview";
 import { AdsLoader } from "@/components/ads/AdsLoader";
 import { ConsentProvider } from "@/components/consent/ConsentProvider";
 import { CookieBanner } from "@/components/consent/CookieBanner";
+import { SiteJsonLd } from "@/components/schema/SiteJsonLd";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -54,6 +55,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH }} />
+        <SiteJsonLd />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}

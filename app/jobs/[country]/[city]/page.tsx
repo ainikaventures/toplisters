@@ -5,6 +5,9 @@ import { JobCard } from "@/app/jobs/_components/JobCard";
 import { cityToSlug, countryToSlug, resolveCountrySlug } from "@/lib/locations";
 import { countryName } from "@/lib/format";
 import { fetchLocationPageData, resolveCity } from "./_data/location";
+import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
+import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
+import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
 
@@ -72,8 +75,25 @@ export default async function LocationPage({
   const { data } = result;
   const country = countryName(data.countryCode);
 
+  const breadcrumbs = [
+    { name: "Home", url: `${SITE_URL}/` },
+    { name: "Browse jobs", url: `${SITE_URL}/jobs` },
+    { name: country, url: `${SITE_URL}/jobs/${result.canonicalCountrySlug}` },
+    {
+      name: data.city,
+      url: `${SITE_URL}/jobs/${result.canonicalCountrySlug}/${result.canonicalCitySlug}`,
+    },
+  ];
+  const listItems = data.jobs.map((job, i) => ({
+    position: i + 1,
+    url: `${SITE_URL}/job/${job.id}/${slugify(job.title)}`,
+    name: job.title,
+  }));
+
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
+      <BreadcrumbJsonLd items={breadcrumbs} />
+      <ItemListJsonLd items={listItems} />
       <nav className="mb-6 flex items-center gap-2 text-xs text-foreground/60">
         <Link href="/jobs" className="hover:text-foreground">All jobs</Link>
         <span>/</span>

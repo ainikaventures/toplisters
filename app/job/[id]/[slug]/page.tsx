@@ -10,6 +10,9 @@ import { JobJsonLd } from "./_components/JobJsonLd";
 import { SimilarJobs } from "./_components/SimilarJobs";
 import { fetchSimilarJobs } from "./_data/related";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
+import { cityToSlug, countryToSlug } from "@/lib/locations";
+import { countryName } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -72,9 +75,34 @@ export default async function JobDetailPage({
   const location = locationLabel({ city: job.city, countryCode: job.countryCode });
   const similar = await fetchSimilarJobs(job);
 
+  // Breadcrumb ladder. ZZ ("unknown") jobs degrade to a 2-step trail so
+  // we don't link to a nonexistent country page.
+  const breadcrumbs = [
+    { name: "Home", url: `${SITE_URL}/` },
+    { name: "Browse jobs", url: `${SITE_URL}/jobs` },
+  ];
+  if (job.countryCode && job.countryCode !== "ZZ") {
+    const countrySlug = countryToSlug(job.countryCode);
+    breadcrumbs.push({
+      name: countryName(job.countryCode),
+      url: `${SITE_URL}/jobs/${countrySlug}`,
+    });
+    if (job.city) {
+      breadcrumbs.push({
+        name: job.city,
+        url: `${SITE_URL}/jobs/${countrySlug}/${cityToSlug(job.city)}`,
+      });
+    }
+  }
+  breadcrumbs.push({
+    name: job.title,
+    url: `${SITE_URL}/job/${job.id}/${canonicalSlug}`,
+  });
+
   return (
     <article className="mx-auto max-w-4xl px-6 py-10">
       <JobJsonLd job={job} siteUrl={SITE_URL} />
+      <BreadcrumbJsonLd items={breadcrumbs} />
 
       <HeroBanner companyName={job.companyName} logoUrl={job.companyLogoUrl} />
 

@@ -5,6 +5,11 @@ import { JobCard } from "./_components/JobCard";
 import { JobsFilters } from "./_components/JobsFilters";
 import { Pagination } from "./_components/Pagination";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
+import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
+import { slugify } from "@/lib/slug";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   title: "Browse jobs",
@@ -83,8 +88,20 @@ export default async function JobsPage({
     if (typeof v === "string" && v.trim()) cleanParams[k] = v;
   }
 
+  const breadcrumbs = [
+    { name: "Home", url: `${SITE_URL}/` },
+    { name: "Browse jobs", url: `${SITE_URL}/jobs` },
+  ];
+  const listItems = jobs.map((job, i) => ({
+    position: (page - 1) * PAGE_SIZE + i + 1,
+    url: `${SITE_URL}/job/${job.id}/${slugify(job.title)}`,
+    name: job.title,
+  }));
+
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
+      <BreadcrumbJsonLd items={breadcrumbs} />
+      <ItemListJsonLd items={listItems} />
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Browse jobs</h1>
