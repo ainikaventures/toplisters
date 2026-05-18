@@ -1,11 +1,14 @@
 import type { JobSource, NormalizedJob } from "./types";
 import type { $Enums } from "@/lib/generated/prisma/client";
 import { cleanHtml, htmlToPlainText } from "./utils";
+import { enrichMany, type JobPostingEnrichment } from "./enrich";
 
 const USER_AGENT = "Toplisters/1.0 (+https://toplisters.xyz)";
 const RESULTS_PER_PAGE = 50;
 const DEFAULT_PAGES_PER_COUNTRY = 1;
 const REQUEST_GAP_MS = 250;
+const DEFAULT_ENRICH_CAP = 100;
+const ENRICH_CONCURRENCY = 4;
 
 // Adzuna country domains we'll query unless overridden via env. Covers
 // every market where their free tier returns meaningful volume —
@@ -44,6 +47,9 @@ interface FetchedItem {
   item: AdzunaItem;
   /** Country we queried — drives the currency map; ISO-2 uppercased downstream. */
   country: string;
+  /** Filled in by the enrichment pass (when enabled) — full description
+   *  scraped from the JobPosting JSON-LD on the employer's careers page. */
+  enrichment?: JobPostingEnrichment;
 }
 
 interface FetchPayload {
@@ -187,6 +193,28 @@ class AdzunaSource implements JobSource {
       }
     }
 
+    // Optional enrichment pass: Adzuna's API only returns description
+    // snippets. For the N newest items we follow the redirect_url to the
+    // employer's careers page and try to extract a full JobPosting JSON-LD
+    // block. Failures (timeout, 4xx, no JSON-LD, JS-rendered page) silently
+    // fall back to the snippet — see lib/sources/enrich.ts.
+    if (process.env.DISABLE_ADZUNA_ENRICHMENT !== "1") {
+      const cap =
+        Number.parseInt(process.env.ADZUNA_ENRICH_CAP ?? "", 10) ||
+        DEFAULT_ENRICH_CAP;
+      const candidates = items
+        .filter((f) => f.item.redirect_url)
+        .map((f, idx) => ({ f, idx, ts: f.item.created ? Date.parse(f.item.created) : 0 }))
+        .sort((a, b) => b.ts - a.ts)
+        .slice(0, cap);
+      const urls = candidates.map((c) => c.f.item.redirect_url as string);
+      const enrichments = await enrichMany(urls, ENRICH_CONCURRENCY);
+      for (let i = 0; i < candidates.length; i++) {
+        const result = enrichments[i];
+        if (result) candidates[i].f.enrichment = result;
+      }
+    }
+
     return { items } satisfies FetchPayload;
   }
 
@@ -196,11 +224,18 @@ class AdzunaSource implements JobSource {
     if (!Array.isArray(items)) return [];
 
     const out: NormalizedJob[] = [];
-    for (const { item, country } of items) {
+    for (const { item, country, enrichment } of items) {
       if (!item.id || !item.title || !item.company?.display_name) continue;
 
       const sourceId = String(item.id);
       const description = item.description ?? "";
+      // Prefer the enriched description when it's substantially longer than
+      // the API snippet. Adzuna snippets typically land at 400–600 chars;
+      // the ">1.5×" gate guarantees we only swap when the win is real and
+      // we never regress to a shorter description.
+      const useEnriched =
+        enrichment &&
+        enrichment.descriptionHtml.length > description.length * 1.5;
       const isPredictedSalary = item.salary_is_predicted === "1";
       const hasSalary =
         !isPredictedSalary && Boolean(item.salary_min || item.salary_max);
@@ -225,7 +260,9 @@ class AdzunaSource implements JobSource {
         sourceId,
         title: item.title.trim(),
         companyName: item.company.display_name.trim(),
-        companyDomain: null,
+        // Filled by the enrichment pass when the redirect lands on a
+        // non-aggregator employer host; null otherwise.
+        companyDomain: enrichment?.companyDomain ?? null,
         // Adzuna doesn't ship logos; pipeline's Logo.dev fallback fills
         // companyLogoUrl by name.
         companyLogoUrl: null,
@@ -235,8 +272,8 @@ class AdzunaSource implements JobSource {
         applyUrl:
           item.redirect_url ??
           `https://www.adzuna.${country === "us" ? "com" : country}/search?adref=${sourceId}`,
-        descriptionHtml: cleanHtml(description),
-        descriptionText: htmlToPlainText(description),
+        descriptionHtml: useEnriched ? enrichment.descriptionHtml : cleanHtml(description),
+        descriptionText: useEnriched ? enrichment.descriptionText : htmlToPlainText(description),
         postedDate: item.created ? new Date(item.created) : new Date(),
         closingDate: null,
         salaryMin: hasSalary && item.salary_min ? Math.round(item.salary_min) : null,
