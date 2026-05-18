@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { Job } from "@/lib/generated/prisma/client";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/slug";
@@ -30,28 +31,26 @@ async function getJob(id: string) {
 }
 
 /**
- * Build a clean SERP meta description from the raw description text.
- * Sources often ship descriptions that start with HTML noise, ALL-CAPS
- * headers ("WHO WE ARE", "ABOUT STRIPE", "OVERVIEW"), bullet markers,
- * or a stray "Apply now" — none of which are compelling first 155 chars.
+ * Build a STRUCTURED meta description from job fields. SEO best practice
+ * for job-board SERPs is to lead with the role's identifying facts —
+ * title, employer, location, salary — before any description prose, so
+ * scanners in the SERP see what they need without parsing a sentence.
  *
- * Steps:
- *   1. collapse whitespace
- *   2. strip leading non-letter/-digit junk
- *   3. word-by-word, drop leading ALL-CAPS heading tokens (capped at
- *      12 words so we never swallow the whole description)
- *   4. cap at 155 chars, breaking at the last sentence or word end
+ * Template shape (subject to ≤160 char cap):
+ *   "{Title} at {Company} in {Location} — {Salary}. {Cleaned snippet}"
+ *
+ * The snippet is the description text with leading ALL-CAPS section
+ * headers ("WHO WE ARE", "OVERVIEW", "ABOUT STRIPE") and other heading
+ * tokens stripped. When there's no room left after the lead, the snippet
+ * is omitted entirely — the lead alone is still a usable meta.
  */
-function jobMetaDescription(text: string, fallback: string): string {
+function cleanedSnippet(text: string): string {
   let cleaned = text
     .replace(/\s+/g, " ")
     .trim()
     .replace(/^[^\p{L}\p{N}]+/u, "")
     .trim();
 
-  // Walk past leading ALL-CAPS heading words. A "heading word" is a
-  // token of 1+ uppercase Unicode letters (no lowercase). The first
-  // token containing a lowercase letter ends the consumption.
   const words = cleaned.split(" ");
   let skip = 0;
   while (skip < words.length && skip < 12) {
@@ -60,26 +59,47 @@ function jobMetaDescription(text: string, fallback: string): string {
       skip++;
       continue;
     }
-    // Strip trailing punctuation when judging case (e.g. "STRIPE,")
     const core = w.replace(/[^\p{L}\p{N}]+$/u, "");
     if (core.length === 0) {
       skip++;
       continue;
     }
-    if (/\p{Ll}/u.test(core)) break; // hit first lower-case → stop
+    if (/\p{Ll}/u.test(core)) break;
     skip++;
   }
   if (skip > 0 && skip < words.length) {
     cleaned = words.slice(skip).join(" ").trim();
   }
+  return cleaned;
+}
 
-  if (cleaned.length === 0) return fallback;
-  if (cleaned.length <= 155) return cleaned;
-  const slice = cleaned.slice(0, 155);
+function jobMetaDescription(job: Job): string {
+  const location = locationLabel({
+    city: job.city,
+    countryCode: job.countryCode,
+  });
+  const salary = salaryLabel(job);
+
+  let lead = `${job.title} at ${job.companyName}`;
+  if (location && location !== "Unknown") lead += ` in ${location}`;
+  if (salary) lead += ` — ${salary}`;
+
+  const snippet = cleanedSnippet(job.descriptionText);
+
+  // No room left for a snippet? The lead alone is still a structured,
+  // SEO-friendly meta. Hard cap 160 just in case the lead itself is long.
+  if (lead.length >= 140 || snippet.length === 0) {
+    return lead.length <= 160 ? lead : lead.slice(0, 159).trim() + "…";
+  }
+
+  const combined = `${lead}. ${snippet}`;
+  if (combined.length <= 160) return combined;
+
+  const slice = combined.slice(0, 160);
   const sentenceEnd = slice.lastIndexOf(". ");
-  if (sentenceEnd >= 80) return slice.slice(0, sentenceEnd + 1);
+  if (sentenceEnd > lead.length) return slice.slice(0, sentenceEnd + 1);
   const wordEnd = slice.lastIndexOf(" ");
-  return (wordEnd >= 80 ? slice.slice(0, wordEnd) : slice) + "…";
+  return (wordEnd > lead.length ? slice.slice(0, wordEnd) : slice) + "…";
 }
 
 export async function generateMetadata({
@@ -91,10 +111,7 @@ export async function generateMetadata({
   const job = await getJob(id);
   if (!job) return { title: "Job not found" };
 
-  const fallbackDesc = `${job.title} at ${job.companyName}`;
-  const description = jobMetaDescription(job.descriptionText, fallbackDesc);
-  const location = locationLabel({ city: job.city, countryCode: job.countryCode });
-  const salary = salaryLabel(job);
+  const description = jobMetaDescription(job);
   const canonical = `${SITE_URL}/job/${job.id}/${slugify(job.title)}`;
 
   return {
@@ -103,7 +120,7 @@ export async function generateMetadata({
     alternates: { canonical },
     openGraph: pageOpenGraph({
       title: `${job.title} at ${job.companyName}`,
-      description: `${location}${salary ? ` · ${salary}` : ""}. ${description}`.slice(0, 200),
+      description,
       url: canonical,
     }),
   };
