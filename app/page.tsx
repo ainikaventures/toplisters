@@ -1,6 +1,7 @@
 import nextDynamic from "next/dynamic";
 import type { Metadata } from "next";
 import { fetchGlobeData } from "./_data/globe";
+import { pageOpenGraph } from "@/lib/seo/og";
 
 // Globe.gl + three.js use browser-only globals (window, document); skip SSR.
 const GlobeView = nextDynamic(
@@ -12,12 +13,12 @@ export const metadata: Metadata = {
   description:
     "A globally-aware job board with an interactive 3D globe at the centre — discover roles by clicking your region.",
   alternates: { canonical: "/" },
-  openGraph: {
+  openGraph: pageOpenGraph({
     title: "Toplisters.xyz — Jobs, mapped to the world",
     description:
       "Interactive 3D globe job board — pick a region, see open roles.",
     url: "/",
-  },
+  }),
 };
 
 // Always re-render so freshly-aggregated jobs show up immediately.

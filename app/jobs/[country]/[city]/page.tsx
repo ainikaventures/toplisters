@@ -7,6 +7,7 @@ import { fetchLocationPageData, resolveCity } from "./_data/location";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { pageOpenGraph } from "@/lib/seo/og";
 import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +63,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, url },
+    openGraph: pageOpenGraph({ title, description, url }),
   };
 }
 

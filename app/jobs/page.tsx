@@ -7,6 +7,7 @@ import { Pagination } from "./_components/Pagination";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
+import { pageOpenGraph } from "@/lib/seo/og";
 import { slugify } from "@/lib/slug";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -15,6 +16,13 @@ export const metadata: Metadata = {
   title: "Browse jobs",
   description:
     "Search remote and on-site roles from across the world. Filter by country, category, work mode, salary, and more.",
+  alternates: { canonical: `${SITE_URL}/jobs` },
+  openGraph: pageOpenGraph({
+    title: "Browse jobs · Toplisters.xyz",
+    description:
+      "Search remote and on-site roles worldwide. Filter by country, category, work mode, salary.",
+    url: `${SITE_URL}/jobs`,
+  }),
 };
 
 const WORK_MODE_VALUES = new Set<$Enums.WorkMode>([

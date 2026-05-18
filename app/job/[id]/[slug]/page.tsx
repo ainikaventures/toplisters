@@ -12,6 +12,7 @@ import { fetchSimilarJobs } from "./_data/related";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/seo/Breadcrumbs";
+import { pageOpenGraph } from "@/lib/seo/og";
 import { cityToSlug, countryToSlug } from "@/lib/locations";
 import { countryName } from "@/lib/format";
 
@@ -31,18 +32,47 @@ async function getJob(id: string) {
 /**
  * Build a clean SERP meta description from the raw description text.
  * Sources often ship descriptions that start with HTML noise, ALL-CAPS
- * headers, bullet markers, or a stray "Apply now" — none of which are
- * compelling first 155 chars. Steps:
+ * headers ("WHO WE ARE", "ABOUT STRIPE", "OVERVIEW"), bullet markers,
+ * or a stray "Apply now" — none of which are compelling first 155 chars.
+ *
+ * Steps:
  *   1. collapse whitespace
  *   2. strip leading non-letter/-digit junk
- *   3. cap at 155 chars, breaking at the last sentence or word end
+ *   3. word-by-word, drop leading ALL-CAPS heading tokens (capped at
+ *      12 words so we never swallow the whole description)
+ *   4. cap at 155 chars, breaking at the last sentence or word end
  */
 function jobMetaDescription(text: string, fallback: string): string {
-  const cleaned = text
+  let cleaned = text
     .replace(/\s+/g, " ")
     .trim()
     .replace(/^[^\p{L}\p{N}]+/u, "")
     .trim();
+
+  // Walk past leading ALL-CAPS heading words. A "heading word" is a
+  // token of 1+ uppercase Unicode letters (no lowercase). The first
+  // token containing a lowercase letter ends the consumption.
+  const words = cleaned.split(" ");
+  let skip = 0;
+  while (skip < words.length && skip < 12) {
+    const w = words[skip];
+    if (!w) {
+      skip++;
+      continue;
+    }
+    // Strip trailing punctuation when judging case (e.g. "STRIPE,")
+    const core = w.replace(/[^\p{L}\p{N}]+$/u, "");
+    if (core.length === 0) {
+      skip++;
+      continue;
+    }
+    if (/\p{Ll}/u.test(core)) break; // hit first lower-case → stop
+    skip++;
+  }
+  if (skip > 0 && skip < words.length) {
+    cleaned = words.slice(skip).join(" ").trim();
+  }
+
   if (cleaned.length === 0) return fallback;
   if (cleaned.length <= 155) return cleaned;
   const slice = cleaned.slice(0, 155);
@@ -71,11 +101,11 @@ export async function generateMetadata({
     title: `${job.title} — ${job.companyName}`,
     description,
     alternates: { canonical },
-    openGraph: {
+    openGraph: pageOpenGraph({
       title: `${job.title} at ${job.companyName}`,
       description: `${location}${salary ? ` · ${salary}` : ""}. ${description}`.slice(0, 200),
       url: canonical,
-    },
+    }),
   };
 }
 

@@ -8,6 +8,7 @@ import { fetchCountryPageData } from "./_data/country";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { pageOpenGraph } from "@/lib/seo/og";
 import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -53,11 +54,11 @@ export async function generateMetadata({
     title: `${result.data.totalJobs} ${jobsLabel} in ${country}`,
     description: `Browse ${result.data.totalJobs.toLocaleString()} active ${rolesLabel} across ${citiesPhrase} in ${country}.`,
     alternates: { canonical: url },
-    openGraph: {
+    openGraph: pageOpenGraph({
       title: `${result.data.totalJobs} ${jobsLabel} in ${country}`,
       description: `Browse ${result.data.totalJobs.toLocaleString()} active ${rolesLabel} across ${citiesPhrase} in ${country}.`,
       url,
-    },
+    }),
   };
 }
 
