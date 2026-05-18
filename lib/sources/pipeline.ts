@@ -94,8 +94,17 @@ async function processJob(
   const byHash = await prisma.job.findUnique({ where: { dedupeHash } });
   if (byHash) {
     if (byHash.source !== sourceName) stats.crossSourceDupes++;
+    // Don't downgrade descriptions on re-fetch. Adzuna's enrichment pass
+    // only fires on the N newest items per run, so a job enriched on
+    // cycle T may not be enriched on T+1 — without this guard, the
+    // longer description would be silently overwritten by the snippet.
+    // Same 1.5× threshold the adapter uses to gate enrichment: if the
+    // existing description is meaningfully longer, keep it. Same rule
+    // protects companyDomain (Adzuna only resolves it via enrichment).
+    const keepExistingDescription =
+      byHash.descriptionHtml.length > job.descriptionHtml.length * 1.5;
     // Refresh mutable fields too — a re-run from the same source might bring
-    // a better description, a logo, an updated salary, or a corrected location.
+    // a better logo, an updated salary, or a corrected location.
     // We do *not* overwrite source / sourceId on cross-source hits so the
     // first-seen source keeps ownership for analytics.
     await prisma.job.update({
@@ -103,12 +112,12 @@ async function processJob(
       data: {
         title: job.title,
         companyName: job.companyName,
-        companyDomain: job.companyDomain,
+        companyDomain: job.companyDomain ?? byHash.companyDomain,
         companyLogoUrl,
         locationText: job.locationText,
         applyUrl: job.applyUrl,
-        descriptionHtml: job.descriptionHtml,
-        descriptionText: job.descriptionText,
+        descriptionHtml: keepExistingDescription ? byHash.descriptionHtml : job.descriptionHtml,
+        descriptionText: keepExistingDescription ? byHash.descriptionText : job.descriptionText,
         salaryMin: job.salaryMin,
         salaryMax: job.salaryMax,
         salaryCurrency: job.salaryCurrency,

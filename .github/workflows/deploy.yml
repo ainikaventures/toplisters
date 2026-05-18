@@ -23,6 +23,11 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Belt and braces: appleboy/ssh-action has been seen to hang after
+    # deploy.sh exits cleanly (no PTY close from the server side). The
+    # job-level timeout force-kills a stuck run; the step-level
+    # command_timeout below bounds the script's own runtime.
+    timeout-minutes: 15
     steps:
       - name: Sanity-check secrets
         run: |
@@ -37,6 +42,10 @@ jobs:
           username: ${{ secrets.PROD_USER }}
           port: ${{ secrets.PROD_SSH_PORT || 22 }}
           key: ${{ secrets.PROD_SSH_KEY }}
+          # Deploy itself takes ~4 min (build is the slow part). 10m leaves
+          # headroom for the slowest case (fresh image cache) but caps the
+          # post-script SSH hang at 10 min instead of unbounded.
+          command_timeout: 10m
           script: |
             cd /opt/toplisters
             ./deploy.sh
