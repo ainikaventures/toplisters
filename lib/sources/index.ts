@@ -9,6 +9,7 @@ import { findwork } from "./findwork";
 import { greenhouse } from "./greenhouse";
 import { lever } from "./lever";
 import { remotive } from "./remotive";
+import { ashby } from "./ashby";
 import { createJsonLdSource } from "./jsonld/source";
 import { JSON_LD_SITES } from "./jsonld/sites";
 
@@ -36,6 +37,7 @@ export const sources: readonly JobSource[] = [
   greenhouse,
   lever,
   remotive,
+  ashby,
   ...jsonLdSources,
 ];
 
