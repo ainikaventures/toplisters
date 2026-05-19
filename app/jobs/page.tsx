@@ -7,6 +7,7 @@ import { Pagination } from "./_components/Pagination";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
+import { TrackJobsList } from "@/components/analytics/TrackJobsList";
 import { pageOpenGraph } from "@/lib/seo/og";
 import { slugify } from "@/lib/slug";
 
@@ -110,6 +111,7 @@ export default async function JobsPage({
     <div className="mx-auto max-w-7xl px-6 py-10">
       <BreadcrumbJsonLd items={breadcrumbs} />
       <ItemListJsonLd items={listItems} />
+      <TrackJobsList listType="all" totalJobs={total} />
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Browse jobs</h1>

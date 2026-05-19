@@ -8,6 +8,7 @@ import { fetchCountryPageData } from "./_data/country";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { TrackJobsList } from "@/components/analytics/TrackJobsList";
 import { pageOpenGraph } from "@/lib/seo/og";
 import { slugify } from "@/lib/slug";
 
@@ -90,6 +91,11 @@ export default async function CountryPage({
     <div className="mx-auto max-w-5xl px-6 py-10">
       <BreadcrumbJsonLd items={breadcrumbs} />
       <ItemListJsonLd items={listItems} />
+      <TrackJobsList
+        listType="country"
+        country={data.countryCode}
+        totalJobs={data.totalJobs}
+      />
       <Breadcrumbs
         className="mb-6"
         items={[

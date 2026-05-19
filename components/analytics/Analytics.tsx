@@ -43,6 +43,11 @@ function PostHog() {
         capture_pageview: true,
         person_profiles: "identified_only",
       });
+      // Expose for lib/analytics/track.ts (and ad-hoc debugging in DevTools).
+      // posthog-js attaches itself to window.posthog in modern versions,
+      // but pin it explicitly so the type-checker stays happy and the
+      // track() helper doesn't have to depend on internal posthog state.
+      window.posthog = posthog as unknown as Window["posthog"];
     });
 
     return () => {

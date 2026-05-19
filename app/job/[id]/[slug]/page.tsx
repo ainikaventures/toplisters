@@ -201,7 +201,13 @@ export default async function JobDetailPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 pt-2">
-          <ApplyButton jobId={job.id} />
+          <ApplyButton
+            jobId={job.id}
+            company={job.companyName}
+            city={job.city}
+            countryCode={job.countryCode}
+            isRemote={job.workMode === "remote"}
+          />
           {source ? (
             <span className="text-xs text-foreground/50">
               via{" "}

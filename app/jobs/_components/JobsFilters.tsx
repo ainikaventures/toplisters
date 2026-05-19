@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { countryName } from "@/lib/format";
+import { track } from "@/lib/analytics/track";
 import type { JobFilters, JobsFacets } from "../_data/query";
 
 const WORK_MODES = ["remote", "hybrid", "onsite", "unknown"] as const;
@@ -57,6 +58,22 @@ export function JobsFilters({
     }
     // Filters changed → reset to page 1.
     params.delete("page");
+
+    // Fire analytics for the two specific filter actions we care about.
+    // Both events fire on the commit boundary (submit/blur/select-change)
+    // — the dedupe-on-equal-value is handled implicitly because identical
+    // commits don't move the router URL.
+    const q = params.get("q");
+    const oldQ = filters.q ?? "";
+    if (q && q !== oldQ) {
+      track("search", { query: q.slice(0, 100) });
+    }
+    const country = params.get("country");
+    const oldCountry = filters.country ?? "";
+    if (country && country !== oldCountry) {
+      track("country_filter", { country });
+    }
+
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
   }

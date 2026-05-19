@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { GlobeCluster } from "@/app/_data/globe";
 import type { ClusterJob } from "@/app/api/globe/cluster/route";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { track } from "@/lib/analytics/track";
 import { JobPanel } from "./JobPanel";
 
 interface Props {
@@ -63,6 +64,18 @@ export function GlobeView({ clusters, totalJobs }: Props) {
   // payload is no longer shipped in the SSR'd HTML (which was driving the
   // page weight past 30 MB at current job volumes).
   const openCluster = async (cluster: GlobeCluster) => {
+    // Fire the analytics event before the network call so we capture the
+    // click even if the user closes the tab while the request is in flight.
+    const camera = (globeRef.current as GlobeApi | null)?.pointOfView?.();
+    track("globe_marker_click", {
+      country: cluster.countryCode,
+      city: cluster.city ?? undefined,
+      markers_visible: clusters.length,
+      zoom_level:
+        camera && typeof (camera as { altitude?: number }).altitude === "number"
+          ? Math.round((camera as { altitude: number }).altitude * 100) / 100
+          : undefined,
+    });
     setSelected({ cluster, jobs: [], loading: true });
     const url = new URL("/api/globe/cluster", window.location.origin);
     url.searchParams.set("country", cluster.countryCode);
@@ -286,6 +299,7 @@ interface GlobeApi {
   pointLabel(fn: (d: unknown) => string): GlobeApi;
   onPointClick(fn: (d: unknown) => void): GlobeApi;
   controls(): { autoRotate: boolean; autoRotateSpeed: number };
+  pointOfView(): { lat: number; lng: number; altitude: number };
   pointOfView(p: { lat: number; lng: number; altitude: number }, ms: number): GlobeApi;
   width(n: number): GlobeApi;
   height(n: number): GlobeApi;
