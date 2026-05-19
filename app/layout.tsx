@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import localFont from "next/font/local";
+import type { Metadata, Viewport } from "next";
+import { Space_Grotesk, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Analytics } from "@/components/analytics/Analytics";
@@ -9,15 +9,26 @@ import { ConsentProvider } from "@/components/consent/ConsentProvider";
 import { CookieBanner } from "@/components/consent/CookieBanner";
 import { SiteJsonLd } from "@/components/schema/SiteJsonLd";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+// Per brand guidelines (brand/assets/tokens.css):
+//   Space Grotesk    — display + body
+//   Instrument Serif — editorial moments
+//   JetBrains Mono   — code / dense numerics
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-space-grotesk",
 });
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: ["400"],
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--font-instrument-serif",
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jetbrains-mono",
 });
 
 const SITE_URL =
@@ -58,6 +69,14 @@ export const metadata: Metadata = {
   },
 };
 
+// Brand-ink address-bar tint on iOS / Android Chrome.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F6F4EE" },
+    { media: "(prefers-color-scheme: dark)", color: "#0E1116" },
+  ],
+};
+
 // Inline no-flash script: must run synchronously before paint so dark-mode
 // users don't see a flash of light content during hydration. Keep it tiny
 // and `try`-wrapped — broken localStorage shouldn't break first paint.
@@ -75,7 +94,7 @@ export default function RootLayout({
         <SiteJsonLd />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        className={`${spaceGrotesk.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <ConsentProvider>
           <ThemeProvider>{children}</ThemeProvider>

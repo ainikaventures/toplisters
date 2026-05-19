@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="520" height="120">
+  <rect x="0" y="26" width="68" height="68" rx="14" fill="#F6F4EE"></rect>
+  <rect x="14" y="42" width="40" height="8" rx="2" fill="#1F6FEB"></rect>
+  <rect x="14" y="56" width="28" height="8" rx="2" fill="#0E1116" fill-opacity="0.85"></rect>
+  <rect x="14" y="70" width="20" height="8" rx="2" fill="#0E1116" fill-opacity="0.55"></rect>
+  <text x="92" y="78" font-family="Space Grotesk, system-ui, sans-serif" font-weight="700" font-size="48" letter-spacing="-1.6" fill="#F6F4EE">toplisters<tspan fill="#1F6FEB">.</tspan></text>
+</svg>

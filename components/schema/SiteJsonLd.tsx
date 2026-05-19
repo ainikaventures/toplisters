@@ -40,6 +40,12 @@ export function SiteJsonLd() {
         name: "Toplisters",
         description:
           "Globally-aware job board with an interactive 3D globe.",
+        logo: {
+          "@type": "ImageObject",
+          url: `${SITE_URL}/logo-mark.svg`,
+          width: 68,
+          height: 68,
+        },
       },
     ],
   };

@@ -60,16 +60,15 @@ export default async function JobOgImage({
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            background:
-              "radial-gradient(circle at 50% 50%, #1e293b 0%, #050714 100%)",
-            color: "white",
+            background: "#0E1116",
+            color: "#F6F4EE",
             fontFamily: "sans-serif",
           }}
         >
-          <div style={{ fontSize: 56, fontWeight: 700, opacity: 0.9 }}>
+          <div style={{ fontSize: 56, fontWeight: 700, opacity: 0.9, display: "flex" }}>
             Job no longer available
           </div>
-          <div style={{ fontSize: 28, opacity: 0.5, marginTop: 16 }}>
+          <div style={{ fontSize: 28, opacity: 0.5, marginTop: 16, display: "flex" }}>
             toplisters.xyz
           </div>
         </div>
@@ -94,33 +93,43 @@ export default async function JobOgImage({
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background:
-            "radial-gradient(circle at 30% 20%, #1e293b 0%, #0a0e1a 60%, #050714 100%)",
-          color: "white",
+          background: "#0E1116",
+          color: "#F6F4EE",
           padding: 72,
           fontFamily: "sans-serif",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            fontSize: 26,
-            letterSpacing: "0.02em",
-            opacity: 0.65,
-          }}
-        >
-          <span
+        {/* Brand mark + wordmark */}
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <div
             style={{
               display: "flex",
-              width: 12,
-              height: 12,
-              borderRadius: 999,
-              background: "linear-gradient(135deg, #38bdf8, #fb923c)",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "flex-start",
+              gap: 5,
+              width: 66,
+              height: 66,
+              borderRadius: 14,
+              border: "1.5px solid rgba(246,244,238,0.18)",
+              padding: 14,
             }}
-          />
-          <span>toplisters.xyz</span>
+          >
+            <span style={{ display: "flex", width: 38, height: 8, borderRadius: 2, background: "#1F6FEB" }} />
+            <span style={{ display: "flex", width: 26, height: 8, borderRadius: 2, background: "rgba(246,244,238,0.85)" }} />
+            <span style={{ display: "flex", width: 18, height: 8, borderRadius: 2, background: "rgba(246,244,238,0.55)" }} />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              fontSize: 30,
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            toplisters
+            <span style={{ display: "flex", color: "#1F6FEB" }}>.</span>
+          </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>

@@ -1,0 +1,16 @@
+/* TopListers — design tokens */
+:root {
+  --tl-ink:    #0E1116;
+  --tl-paper:  #F6F4EE;
+  --tl-blue:   #1F6FEB;
+  --tl-lime:   #C8F24D;
+  --tl-sun:    #FFB547;
+
+  --tl-font-display: 'Space Grotesk', system-ui, sans-serif;
+  --tl-font-editorial: 'Instrument Serif', Georgia, serif;
+  --tl-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --tl-radius-sm: 8px;
+  --tl-radius:    14px;
+  --tl-radius-lg: 18px;
+}

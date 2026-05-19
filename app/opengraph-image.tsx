@@ -24,55 +24,66 @@ export default function OpengraphImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background:
-            "radial-gradient(circle at 30% 20%, #1e293b 0%, #0a0e1a 60%, #050714 100%)",
-          color: "white",
+          background: "#0E1116",
+          color: "#F6F4EE",
           padding: 80,
           fontFamily: "sans-serif",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            fontSize: 28,
-            letterSpacing: "0.02em",
-            opacity: 0.6,
-          }}
-        >
-          <span
+        {/* Brand mark — three-bar list icon */}
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          <div
             style={{
               display: "flex",
-              width: 12,
-              height: 12,
-              borderRadius: 999,
-              background: "linear-gradient(135deg, #38bdf8, #fb923c)",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "flex-start",
+              gap: 6,
+              width: 88,
+              height: 88,
+              borderRadius: 20,
+              background: "#0E1116",
+              border: "1.5px solid rgba(246,244,238,0.18)",
+              padding: 18,
             }}
-          />
-          <span>toplisters.xyz</span>
+          >
+            <span style={{ display: "flex", width: 52, height: 10, borderRadius: 3, background: "#1F6FEB" }} />
+            <span style={{ display: "flex", width: 36, height: 10, borderRadius: 3, background: "rgba(246,244,238,0.85)" }} />
+            <span style={{ display: "flex", width: 26, height: 10, borderRadius: 3, background: "rgba(246,244,238,0.55)" }} />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              fontSize: 38,
+              fontWeight: 700,
+              letterSpacing: "-0.025em",
+            }}
+          >
+            toplisters
+            <span style={{ display: "flex", color: "#1F6FEB" }}>.</span>
+          </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div
             style={{
-              fontSize: 104,
+              fontSize: 108,
               fontWeight: 700,
               lineHeight: 1.02,
-              letterSpacing: "-0.03em",
+              letterSpacing: "-0.035em",
+              display: "flex",
             }}
           >
             Jobs, mapped
           </div>
           <div
             style={{
-              fontSize: 104,
+              fontSize: 108,
               fontWeight: 700,
               lineHeight: 1.02,
-              letterSpacing: "-0.03em",
-              background: "linear-gradient(90deg, #38bdf8, #fb923c)",
-              backgroundClip: "text",
-              color: "transparent",
+              letterSpacing: "-0.035em",
+              color: "#1F6FEB",
+              display: "flex",
             }}
           >
             to the world.
@@ -80,10 +91,11 @@ export default function OpengraphImage() {
           <div
             style={{
               fontSize: 32,
-              opacity: 0.65,
+              opacity: 0.7,
               marginTop: 28,
               lineHeight: 1.35,
-              maxWidth: 880,
+              maxWidth: 920,
+              display: "flex",
             }}
           >
             An interactive 3D globe job board — discover roles by clicking your
@@ -94,17 +106,18 @@ export default function OpengraphImage() {
         <div
           style={{
             display: "flex",
-            gap: 40,
+            gap: 32,
             fontSize: 22,
-            opacity: 0.7,
+            opacity: 0.75,
             letterSpacing: "0.01em",
+            alignItems: "center",
           }}
         >
-          <span>Global coverage</span>
-          <span>·</span>
-          <span>Updated daily</span>
-          <span>·</span>
-          <span>Source-attributed</span>
+          <span style={{ display: "flex" }}>Global coverage</span>
+          <span style={{ display: "flex", opacity: 0.4 }}>·</span>
+          <span style={{ display: "flex" }}>Updated daily</span>
+          <span style={{ display: "flex", opacity: 0.4 }}>·</span>
+          <span style={{ display: "flex" }}>Source-attributed</span>
         </div>
       </div>
     ),

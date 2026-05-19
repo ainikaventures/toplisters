@@ -3,9 +3,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * TopListers theme tokens. Raw brand values live at :root under tl-*
+ * so the brand surface stays one source of truth — light/dark themes
+ * compose the semantic Tailwind tokens from these.
+ */
+
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-space-grotesk);
+  --font-serif: var(--font-instrument-serif);
+  --font-mono: var(--font-jetbrains-mono);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -30,88 +37,81 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --color-brand-ink: var(--tl-ink);
+  --color-brand-paper: var(--tl-paper);
+  --color-brand-blue: var(--tl-blue);
+  --color-brand-lime: var(--tl-lime);
+  --color-brand-sun: var(--tl-sun);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Brand source-of-truth — mirror of brand/assets/tokens.css */
+  --tl-ink:   #0E1116;
+  --tl-paper: #F6F4EE;
+  --tl-blue:  #1F6FEB;
+  --tl-lime:  #C8F24D;
+  --tl-sun:   #FFB547;
+
+  /* Light theme mapping */
+  --background: var(--tl-paper);
+  --foreground: var(--tl-ink);
+  --card: #FFFFFF;
+  --card-foreground: var(--tl-ink);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--tl-ink);
+  --primary: var(--tl-blue);
+  --primary-foreground: var(--tl-paper);
+  --secondary: rgb(14 17 22 / 0.06);
+  --secondary-foreground: var(--tl-ink);
+  --muted: rgb(14 17 22 / 0.04);
+  --muted-foreground: rgb(14 17 22 / 0.6);
+  --accent: var(--tl-sun);
+  --accent-foreground: var(--tl-ink);
+  --destructive: #DC2626;
+  --border: rgb(14 17 22 / 0.1);
+  --input: rgb(14 17 22 / 0.12);
+  --ring: var(--tl-blue);
+
+  --chart-1: var(--tl-blue);
+  --chart-2: var(--tl-sun);
+  --chart-3: var(--tl-lime);
+  --chart-4: rgb(14 17 22 / 0.55);
+  --chart-5: rgb(14 17 22 / 0.3);
+
+  --radius: 14px;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: var(--tl-ink);
+  --foreground: var(--tl-paper);
+  --card: #181B22;
+  --card-foreground: var(--tl-paper);
+  --popover: #181B22;
+  --popover-foreground: var(--tl-paper);
+  --primary: var(--tl-blue);
+  --primary-foreground: var(--tl-paper);
+  --secondary: rgb(246 244 238 / 0.08);
+  --secondary-foreground: var(--tl-paper);
+  --muted: rgb(246 244 238 / 0.06);
+  --muted-foreground: rgb(246 244 238 / 0.65);
+  --accent: var(--tl-sun);
+  --accent-foreground: var(--tl-ink);
+  --destructive: #EF4444;
+  --border: rgb(246 244 238 / 0.12);
+  --input: rgb(246 244 238 / 0.16);
+  --ring: var(--tl-blue);
+
+  --chart-1: var(--tl-blue);
+  --chart-2: var(--tl-sun);
+  --chart-3: var(--tl-lime);
+  --chart-4: rgb(246 244 238 / 0.55);
+  --chart-5: rgb(246 244 238 / 0.3);
 }
 
 @layer base {
