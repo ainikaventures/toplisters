@@ -2,6 +2,8 @@ import nextDynamic from "next/dynamic";
 import type { Metadata } from "next";
 import { fetchGlobeData } from "./_data/globe";
 import { pageOpenGraph } from "@/lib/seo/og";
+import { getTopCountries } from "@/lib/seo/internal-links";
+import { HomeBrowseLinks } from "@/components/seo/HomeBrowseLinks";
 
 // Globe.gl + three.js use browser-only globals (window, document); skip SSR.
 const GlobeView = nextDynamic(
@@ -25,8 +27,16 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Landing() {
-  const { clusters, totalJobs } = await fetchGlobeData();
-  return <GlobeView clusters={clusters} totalJobs={totalJobs} />;
+  const [{ clusters, totalJobs }, countries] = await Promise.all([
+    fetchGlobeData(),
+    getTopCountries(20),
+  ]);
+  return (
+    <>
+      <GlobeView clusters={clusters} totalJobs={totalJobs} />
+      <HomeBrowseLinks countries={countries} />
+    </>
+  );
 }
 
 function GlobeFallback() {
