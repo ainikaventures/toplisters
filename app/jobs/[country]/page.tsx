@@ -11,6 +11,7 @@ import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { TrackJobsList } from "@/components/analytics/TrackJobsList";
 import { pageOpenGraph } from "@/lib/seo/og";
 import { slugify } from "@/lib/slug";
+import { getSiblingCountries } from "@/lib/seo/internal-links";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,7 @@ export default async function CountryPage({
   const { data } = result;
   const country = countryName(data.countryCode);
   const countrySlug = countryToSlug(data.countryCode);
+  const siblingCountries = await getSiblingCountries(data.countryCode, 24);
 
   const breadcrumbs = [
     { name: "Home", url: `${SITE_URL}/` },
@@ -158,6 +160,26 @@ export default async function CountryPage({
             {data.jobs.map((job) => (
               <li key={job.id}>
                 <JobCard job={job} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {siblingCountries.length > 0 ? (
+        <section className="mt-12 border-t border-foreground/10 pt-8">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground/60">
+            Jobs in other countries
+          </h2>
+          <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+            {siblingCountries.map((c) => (
+              <li key={c.countryCode}>
+                <Link
+                  href={`/jobs/${c.slug}`}
+                  className="text-foreground/75 hover:text-foreground hover:underline"
+                >
+                  {c.name}
+                </Link>
               </li>
             ))}
           </ul>

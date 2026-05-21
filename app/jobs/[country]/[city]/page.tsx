@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { JobCard } from "@/app/jobs/_components/JobCard";
 import { cityToSlug, countryToSlug, resolveCountrySlug } from "@/lib/locations";
 import { countryName } from "@/lib/format";
-import { fetchLocationPageData, resolveCity } from "./_data/location";
+import {
+  fetchLocationPageData,
+  fetchSiblingCities,
+  resolveCity,
+} from "./_data/location";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
@@ -80,6 +85,7 @@ export default async function LocationPage({
 
   const { data } = result;
   const country = countryName(data.countryCode);
+  const siblingCities = await fetchSiblingCities(data.countryCode, data.city);
 
   const breadcrumbs = [
     { name: "Home", url: `${SITE_URL}/` },
@@ -181,6 +187,37 @@ export default async function LocationPage({
           ))}
         </ul>
       </section>
+
+      {siblingCities.length > 0 ? (
+        <section className="mt-12 border-t border-foreground/10 pt-8">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground/60">
+            Other cities in {country}
+          </h2>
+          <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+            {siblingCities.map((c) => (
+              <li key={c.slug}>
+                <Link
+                  href={`/jobs/${result.canonicalCountrySlug}/${c.slug}`}
+                  className="text-foreground/75 hover:text-foreground hover:underline"
+                >
+                  {c.name}
+                  <span className="ml-1 text-xs text-foreground/45">
+                    {c.jobCount}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-sm">
+            <Link
+              href={`/jobs/${result.canonicalCountrySlug}`}
+              className="text-foreground/75 underline-offset-2 hover:text-foreground hover:underline"
+            >
+              ← All jobs in {country}
+            </Link>
+          </p>
+        </section>
+      ) : null}
     </div>
   );
 }

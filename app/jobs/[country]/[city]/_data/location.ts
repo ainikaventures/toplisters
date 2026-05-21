@@ -5,6 +5,42 @@ import type { Job } from "@/lib/generated/prisma/client";
 
 const MIN_JOBS_FOR_PAGE = 5; // Spec line 167
 
+export interface SiblingCity {
+  name: string;
+  slug: string;
+  jobCount: number;
+}
+
+/**
+ * Other cities in the same country that have their own landing page
+ * (≥ MIN_JOBS_FOR_PAGE active roles), excluding the current one — TL-091
+ * sibling interlinking. Ordered by volume so the busiest siblings lead.
+ */
+export async function fetchSiblingCities(
+  countryCode: string,
+  excludeCity: string,
+  limit = 12,
+): Promise<SiblingCity[]> {
+  const groups = await prisma.job.groupBy({
+    by: ["city"],
+    where: { countryCode, isActive: true, city: { not: null } },
+    _count: { _all: true },
+    orderBy: { _count: { city: "desc" } },
+  });
+
+  return groups
+    .filter(
+      (g) =>
+        g.city && g.city !== excludeCity && g._count._all >= MIN_JOBS_FOR_PAGE,
+    )
+    .slice(0, limit)
+    .map((g) => ({
+      name: g.city!,
+      slug: cityToSlug(g.city!),
+      jobCount: g._count._all,
+    }));
+}
+
 export interface LocationStats {
   totalJobs: number;
   topCategories: { name: string; count: number }[];
