@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { fetchGlobeData } from "./_data/globe";
 import { pageOpenGraph } from "@/lib/seo/og";
 import { SiteHeader } from "@/components/site/SiteHeader";
-import { SiteFooter } from "@/components/site/SiteFooter";
 
 // Globe.gl + three.js use browser-only globals (window, document); skip SSR.
 const GlobeView = nextDynamic(
@@ -32,7 +31,6 @@ export default async function Landing() {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <SiteHeader />
       <GlobeView clusters={clusters} totalJobs={totalJobs} />
-      <SiteFooter />
     </div>
   );
 }

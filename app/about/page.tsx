@@ -88,6 +88,7 @@ export default function AboutPage() {
           repo is at{" "}
           <a
             href="https://github.com/ainikaventures/toplisters"
+            target="_blank"
             rel="noopener"
             className="underline-offset-2 hover:underline"
           >
