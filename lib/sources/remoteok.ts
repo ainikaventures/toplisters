@@ -43,6 +43,7 @@ interface RemoteOKItem {
 class RemoteOKSource implements JobSource {
   readonly name = "remoteok";
   readonly displayName = "RemoteOK";
+  readonly attribution = "via RemoteOK";
   readonly providerUrl = "https://remoteok.com";
 
   isEnabled(): boolean {

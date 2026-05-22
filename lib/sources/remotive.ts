@@ -68,6 +68,7 @@ function pickJobType(jobType: string | undefined): $Enums.JobType {
 class RemotiveSource implements JobSource {
   readonly name = "remotive";
   readonly displayName = "Remotive";
+  readonly attribution = "via Remotive";
   readonly providerUrl = "https://remotive.com";
 
   isEnabled(): boolean {

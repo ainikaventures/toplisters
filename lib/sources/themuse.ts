@@ -104,6 +104,7 @@ function isInternship(levels: MuseNamed[] | undefined): boolean {
 class TheMuseSource implements JobSource {
   readonly name = "the_muse";
   readonly displayName = "The Muse";
+  readonly attribution = "via The Muse";
   readonly providerUrl = "https://www.themuse.com";
 
   isEnabled(): boolean {

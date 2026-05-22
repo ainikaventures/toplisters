@@ -80,12 +80,17 @@ export default function AboutPage() {
           and per-city pages are designed for serious search.
         </p>
 
-        <h2 className="mt-10 text-lg font-semibold">Honest about the early days</h2>
+        <h2 className="mt-10 text-lg font-semibold">Where the jobs come from</h2>
         <p className="mt-3 text-sm leading-relaxed text-foreground/75">
-          We&apos;re building in public. Two job sources are wired up so
-          far (RemoteOK and Arbeitnow); more land as we work through their
-          terms of service. If you spot something missing or wrong, the
-          repo is at{" "}
+          We aggregate from a range of public job APIs and direct-from-employer
+          ATS feeds — the live list, with health and job counts, is on the{" "}
+          <Link href="/sources" className="underline-offset-2 hover:underline">
+            sources page
+          </Link>
+          . We run no ads, link every listing back to the original posting,
+          and respect each provider&apos;s terms — if a source&apos;s terms
+          change, we pull it. We&apos;re building in public; spot something
+          missing or wrong? The repo is at{" "}
           <a
             href="https://github.com/ainikaventures/toplisters"
             target="_blank"
