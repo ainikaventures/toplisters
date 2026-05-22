@@ -114,9 +114,11 @@ function configuredCountries(): string[] {
  * NZ / PL / SG / ZA / IT / NL). Uses HTTP query auth (app_id + app_key)
  * with a 1000-request/day free tier.
  *
- * TOS notes (per Adzuna's API terms):
- *  - Attribution required: "via Adzuna" is rendered next to Apply on the
- *    job detail page (the JobSource.attribution field handles this)
+ * TOS notes (per Adzuna's API terms — see info/COMPLIANCE.md):
+ *  - Attribution format is mandated: the label "Jobs by Adzuna" with the
+ *    word "Jobs" hyperlinked to adzuna.co.uk. Rendered on the job detail
+ *    page via lib/sources/attribution.ts (NOT the plain attribution
+ *    string, which only feeds the /sources table).
  *  - Apply links MUST go through the redirect_url — we use it as
  *    applyUrl unmodified so Adzuna's affiliate tracking + click counts
  *    remain intact
@@ -135,7 +137,7 @@ function configuredCountries(): string[] {
 class AdzunaSource implements JobSource {
   readonly name = "adzuna";
   readonly displayName = "Adzuna";
-  readonly attribution = "via Adzuna";
+  readonly attribution = "Jobs by Adzuna"; // exact label required by Adzuna's API ToS
   readonly providerUrl = "https://www.adzuna.com";
 
   isEnabled(): boolean {

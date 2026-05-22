@@ -22,9 +22,11 @@ _Last reviewed: 2026-05-23._
 - **Link out, never clone.** "Apply" goes through
   `/api/jobs/[id]/click` → 303 redirect to the original `applyUrl`,
   unmodified, preserving each provider's affiliate / tracking params.
-- **Attribution shown.** Every adapter sets a `JobSource.attribution`
-  ("via X") rendered next to Apply on the job detail page and on
-  `/sources`.
+- **Attribution shown, per provider's required format.** The job detail
+  page renders credit via `lib/sources/attribution.ts`, which honors each
+  provider's mandated wording / link behavior (default is "via {Name}" →
+  apply URL, `nofollow`). The `/sources` table uses the plain
+  `JobSource.attribution` string.
 - **Bounded retention.** Jobs not re-seen for 30 days are set
   `isActive=false` (`lib/jobs/stale.ts`); soft-delete keeps analytics.
 - **Per-source kill-switch.** `DISABLE_SOURCE_<NAME>=1` disables any
@@ -32,18 +34,23 @@ _Last reviewed: 2026-05-23._
 
 ## Per-provider
 
-| Provider | Access | Attribution | Notes |
+| Provider | Access | Required attribution format | How we render it |
 |---|---|---|---|
-| **Adzuna** | Official API (`app_id`/`app_key`) | via Adzuna | TOS requires attribution (done), apply via `redirect_url` unmodified (done), no salary-prediction misrepresentation (done). Their terms also note **personal use only** and **no aggregating with other sources without consent** — the no-ads stance addresses the commercial concern; the no-aggregation clause remains a known risk to watch. Free tier 1000 req/day, we use ~29%. |
-| **Reed** | Official API (Basic auth) | via Reed | Attribution + link-back required (done). Appcast syndicator rows filtered at ingest (`reed.ts`) + historic cleanup (`scripts/deactivate-appcast.ts`). |
-| **Jooble** | Official API (key in path) | via Jooble | Tracked redirect links passed through unmodified. Per-row underlying source surfaced in the description. |
-| **Findwork** | Official API (Token header) | via Findwork | 200 req/day free tier, we use ~24. |
-| **The Muse** | Official API (optional key) | via The Muse | Attribution added 2026-05-23. |
-| **RemoteOK** | Public JSON feed | via RemoteOK | Attribution added 2026-05-23. Their TOS forbids **logo redistribution** — adapter drops logos and falls back to initials avatars. |
-| **Remotive** | Public JSON feed | via Remotive | Attribution added 2026-05-23. |
-| **Arbeitnow** | Public JSON feed | via Arbeitnow | Attribution added 2026-05-23. |
-| **Greenhouse / Lever / Ashby** | Public ATS board APIs (unauthenticated) | via the company's careers page | Direct-from-employer; apply URLs (incl. `gh_jid` tracking) passed through unmodified. |
-| **JSON-LD sources** | schema.org `JobPosting` from public pages | per-site (e.g. via Remotive) | Configured in `lib/sources/jsonld/sites.ts`. |
+| **Adzuna** | Official API (`app_id`/`app_key`) | ToS-mandated: label **"Jobs by Adzuna"**, "Jobs" hyperlinked to adzuna.co.uk | "Jobs by Adzuna" with "Jobs" → adzuna.co.uk (special-cased in `attribution.ts`). Also: personal-use-only + **no-aggregation-without-consent** (see risks); apply via `redirect_url` unmodified; predicted salaries dropped. |
+| **RemoteOK** | Public JSON feed | ToS-mandated: **dofollow** backlink to the RemoteOK listing ("without nofollow!") + mention "Remote OK"; **no logo** without permission | "via RemoteOK" → `remoteok.com/remote-jobs/{id}`, `rel="noopener"` (dofollow). Logos already dropped (initials avatar). |
+| **The Muse** | Official API (optional key) | Content must link back to themuse.com (§3.4) — no specific phrase | "via The Muse" → apply URL (always a themuse.com page). |
+| **Reed** | Official API (Basic auth) | Per API agreement (registration); attribution + link-back | "via Reed" → reed.co.uk job URL. Appcast syndicator rows filtered (`reed.ts` + `scripts/deactivate-appcast.ts`). Confirm exact wording in the key agreement. |
+| **Jooble** | Official API (key in path) | No public format; per key agreement | "via Jooble"; tracked redirect links passed through unmodified. Confirm in agreement. |
+| **Findwork** | Official API (Token header) | None found public | "via Findwork". 200 req/day free tier, we use ~24. |
+| **Remotive** | Public JSON feed | Open API, link-back appreciated, no mandated format | "via Remotive" → apply URL. |
+| **Arbeitnow** | Public JSON feed | Open API, no mandated format | "via Arbeitnow" → apply URL. |
+| **Greenhouse / Lever / Ashby** | Public ATS board APIs (unauthenticated) | None — employer's own data | "via the company's careers page"; apply URLs (incl. `gh_jid` tracking) passed through unmodified. |
+| **JSON-LD sources** | schema.org `JobPosting` from public pages | per-site | "via {site}" (configured in `lib/sources/jsonld/sites.ts`). |
+
+Default render for any source without a special case: **"via {displayName}"
+→ apply URL, `rel="noopener nofollow"`**. Adzuna and RemoteOK are the only
+special cases in `attribution.ts` (their terms mandate a specific
+label / a follow link, respectively).
 
 ## Known risks / to revisit
 

@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/slug";
 import { locationLabel, salaryLabel, relativeTime } from "@/lib/format";
-import { getSource } from "@/lib/sources";
+import { getSource, jobAttribution } from "@/lib/sources";
 import { HeroBanner } from "./_components/HeroBanner";
 import { ApplyButton } from "./_components/ApplyButton";
 import { SaveJobButton } from "@/components/account/SaveJobButton";
@@ -144,6 +144,7 @@ export default async function JobDetailPage({
   }
 
   const source = getSource(job.source);
+  const attribution = source ? jobAttribution(job, source.displayName) : null;
   const salary = salaryLabel(job);
   const location = locationLabel({ city: job.city, countryCode: job.countryCode });
   const similar = await fetchSimilarJobs(job);
@@ -219,16 +220,17 @@ export default async function JobDetailPage({
             isRemote={job.workMode === "remote"}
           />
           <SaveJobButton jobId={job.id} initialSaved={initialSaved} />
-          {source ? (
+          {attribution ? (
             <span className="text-xs text-foreground/50">
-              via{" "}
+              {attribution.before}
               <a
-                href={job.applyUrl}
-                rel="noopener nofollow"
+                href={attribution.href}
+                rel={attribution.rel}
                 className="underline-offset-2 hover:underline"
               >
-                {source.displayName}
+                {attribution.linkText}
               </a>
+              {attribution.after}
             </span>
           ) : null}
         </div>

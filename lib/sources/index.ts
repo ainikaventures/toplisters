@@ -50,3 +50,4 @@ export function enabledSources(): JobSource[] {
 }
 
 export type { JobSource, NormalizedJob } from "./types";
+export { jobAttribution, type AttributionParts } from "./attribution";
