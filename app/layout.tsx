@@ -56,11 +56,10 @@ export const metadata: Metadata = {
     images: ["/opengraph-image"],
   },
   other: {
-    // Google AdSense ownership verification. Renders as
-    // <meta name="google-adsense-account" content="ca-pub-..." />.
-    // Does NOT load adsbygoogle.js — that's done by AdsLoader after consent
-    // (preserves the consent-gated design from commit 3a191aa).
-    "google-adsense-account": "ca-pub-2028217968551720",
+    // AdSense ownership meta intentionally removed — ads are disabled
+    // site-wide (info/COMPLIANCE.md) so the site stays non-commercial and
+    // within the job APIs' free-tier terms. Re-add the
+    // "google-adsense-account" meta here if ads are ever re-enabled.
     // Bing Webmaster Tools site ownership verification. Static meta tag,
     // no cookies / no JS, so it lives here rather than in the consent-gated
     // Analytics component. Pair with the XML sitemap already submitted at

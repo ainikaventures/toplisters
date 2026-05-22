@@ -42,7 +42,9 @@ interface AdSlotProps {
 export function AdSlot({ placement, className }: AdSlotProps) {
   const { consent } = useConsent();
   const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
-  const enabled = process.env.NEXT_PUBLIC_ADS_ENABLED === "1";
+  // Hard-disabled — see AdsLoader + info/COMPLIANCE.md. Slots render
+  // nothing so there's no layout shift; flip back by restoring `=== "1"`.
+  const enabled: boolean = false; // was: process.env.NEXT_PUBLIC_ADS_ENABLED === "1"
   const slot = SLOT_ENV[placement];
   const pushed = useRef(false);
 

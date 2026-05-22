@@ -19,7 +19,12 @@ import { useConsent } from "@/components/consent/ConsentProvider";
 export function AdsLoader() {
   const { consent } = useConsent();
   const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
-  const enabled = process.env.NEXT_PUBLIC_ADS_ENABLED === "1";
+  // AdSense is hard-disabled site-wide so the free-tier job APIs (Adzuna,
+  // Reed, The Muse, …) stay within their non-commercial / personal-use
+  // terms — see info/COMPLIANCE.md. The env switch is intentionally
+  // overridden here; to re-enable, restore `=== "1"` AND review provider
+  // terms (most free tiers forbid commercial / ad-supported use).
+  const enabled: boolean = false; // was: process.env.NEXT_PUBLIC_ADS_ENABLED === "1"
 
   if (!enabled || !client || consent !== "granted") return null;
 
