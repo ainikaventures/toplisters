@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GlobeCluster } from "@/app/_data/globe";
 import type { ClusterJob } from "@/app/api/globe/cluster/route";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Logo } from "@/components/brand/Logo";
 import { track } from "@/lib/analytics/track";
 import { JobPanel } from "./JobPanel";
@@ -224,14 +223,8 @@ export function GlobeView({ clusters, totalJobs }: Props) {
     : "";
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-black text-white">
+    <div className="relative min-h-[60vh] w-full flex-1 overflow-hidden bg-black text-white">
       <div ref={containerRef} className="absolute inset-0" />
-
-      <div className="pointer-events-none absolute right-3 top-3 z-20 sm:right-6 sm:top-6">
-        <div className="pointer-events-auto">
-          <ThemeToggle className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white backdrop-blur transition-colors hover:bg-white/15" />
-        </div>
-      </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-center gap-3 px-4 pt-14 sm:p-6">
         <h1 className="sr-only">Toplisters — jobs mapped to the world</h1>
@@ -268,16 +261,6 @@ export function GlobeView({ clusters, totalJobs }: Props) {
           <span className="text-xs text-white/60">{statusMsg}</span>
         ) : null}
       </div>
-
-      <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-6 pb-3 text-center text-[10px] text-white/40">
-        Built by{" "}
-        <a href="https://ainika.xyz" rel="noopener" className="pointer-events-auto underline-offset-2 hover:underline">
-          Ainika
-        </a>{" · "}Developed by{" "}
-        <a href="https://lyrava.com" rel="noopener" className="pointer-events-auto underline-offset-2 hover:underline">
-          Lyrava
-        </a>
-      </footer>
 
       <JobPanel
         open={selected !== null}
