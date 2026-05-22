@@ -43,6 +43,7 @@ export default function PostAJobPage() {
           <p>
             <a
               href="https://lyrava.com"
+              target="_blank"
               rel="noopener"
               className="font-medium text-foreground underline-offset-2 hover:underline"
             >

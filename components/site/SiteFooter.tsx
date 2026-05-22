@@ -77,6 +77,7 @@ export async function SiteFooter() {
             Built by{" "}
             <a
               href="https://ainika.xyz"
+              target="_blank"
               rel="noopener"
               className="font-medium text-foreground hover:underline"
             >
@@ -85,6 +86,7 @@ export async function SiteFooter() {
             {" · "}Developed by{" "}
             <a
               href="https://lyrava.com"
+              target="_blank"
               rel="noopener"
               className="font-medium text-foreground hover:underline"
             >

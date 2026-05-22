@@ -49,6 +49,7 @@ export default function AboutPage() {
           Toplisters.xyz is a product by{" "}
           <a
             href="https://ainika.xyz"
+            target="_blank"
             rel="noopener"
             className="font-medium text-foreground underline-offset-2 hover:underline"
           >
@@ -57,6 +58,7 @@ export default function AboutPage() {
           , developed and maintained by{" "}
           <a
             href="https://lyrava.com"
+            target="_blank"
             rel="noopener"
             className="font-medium text-foreground underline-offset-2 hover:underline"
           >
@@ -101,6 +103,7 @@ export default function AboutPage() {
           to{" "}
           <a
             href="https://lyrava.com"
+            target="_blank"
             rel="noopener"
             className="underline-offset-2 hover:underline"
           >

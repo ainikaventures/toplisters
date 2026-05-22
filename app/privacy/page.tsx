@@ -125,6 +125,7 @@ export default function PrivacyPage() {
           Toplisters.xyz is a product by{" "}
           <a
             href="https://ainika.xyz"
+            target="_blank"
             rel="noopener"
             className="underline-offset-2 hover:underline"
           >
@@ -133,6 +134,7 @@ export default function PrivacyPage() {
           , developed by{" "}
           <a
             href="https://lyrava.com"
+            target="_blank"
             rel="noopener"
             className="underline-offset-2 hover:underline"
           >
