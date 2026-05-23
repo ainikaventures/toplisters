@@ -7,8 +7,6 @@ import { locationLabel, salaryLabel, relativeTime } from "@/lib/format";
 import { getSource, jobAttribution } from "@/lib/sources";
 import { HeroBanner } from "./_components/HeroBanner";
 import { ApplyButton } from "./_components/ApplyButton";
-import { SaveJobButton } from "@/components/account/SaveJobButton";
-import { getSessionUser } from "@/lib/auth/session";
 import { JobJsonLd } from "./_components/JobJsonLd";
 import { SimilarJobs } from "./_components/SimilarJobs";
 import { fetchSimilarJobs } from "./_data/related";
@@ -149,14 +147,6 @@ export default async function JobDetailPage({
   const location = locationLabel({ city: job.city, countryCode: job.countryCode });
   const similar = await fetchSimilarJobs(job);
 
-  // Saved-state for the Save button: only query when signed in.
-  const user = await getSessionUser();
-  const initialSaved = user
-    ? (await prisma.savedJob.findUnique({
-        where: { userId_jobId: { userId: user.id, jobId: job.id } },
-      })) !== null
-    : false;
-
   // Breadcrumb ladder. ZZ ("unknown") jobs degrade to a 2-step trail so
   // we don't link to a nonexistent country page. The visible component
   // and the BreadcrumbJsonLd share the same trail (different href shapes
@@ -219,7 +209,6 @@ export default async function JobDetailPage({
             countryCode={job.countryCode}
             isRemote={job.workMode === "remote"}
           />
-          <SaveJobButton jobId={job.id} initialSaved={initialSaved} />
           {attribution ? (
             <span className="text-xs text-foreground/50">
               {attribution.before}

@@ -108,7 +108,6 @@ model Job {
   clicks      JobClick[]
   submission  JobSubmission?
   socialPosts SocialPost[]
-  savedBy     SavedJob[]
 
   @@unique([source, sourceId])
   @@index([countryCode, isActive])
@@ -270,65 +269,4 @@ model GeocodeCache {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("geocode_cache")
-}
-
-// ─── Accounts (passwordless / magic-link) ───────────────────────────────────
-
-// Job-seeker account. Created on first successful magic-link sign-in
-// (upsert by email), so "create account" and "sign in" are the same act.
-// No password column by design — auth is email-link only.
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
-
-  sessions  Session[]
-  savedJobs SavedJob[]
-
-  @@map("users")
-}
-
-// Single-use magic-link token. The raw token travels in the emailed URL;
-// only its SHA-256 hash is stored, so a DB read can't mint a valid link.
-// Short TTL (15 min) + usedAt guard. `email` (not a userId) because the
-// account may not exist yet — the callback upserts the User on success.
-model LoginToken {
-  id        String    @id @default(cuid())
-  email     String
-  tokenHash String    @unique @map("token_hash")
-  expiresAt DateTime  @map("expires_at")
-  usedAt    DateTime? @map("used_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-
-  @@index([email])
-  @@map("login_tokens")
-}
-
-// DB-backed session. The cookie holds the raw token; we store only its
-// SHA-256 hash. Revocable (delete the row) and expiring (30 days).
-model Session {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String   @unique @map("token_hash")
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([userId])
-  @@map("sessions")
-}
-
-// A job a signed-in user bookmarked. (userId, jobId) unique so saving is
-// idempotent; both sides cascade-delete.
-model SavedJob {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  jobId     String   @map("job_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@unique([userId, jobId])
-  @@index([userId, createdAt])
-  @@map("saved_jobs")
 }
