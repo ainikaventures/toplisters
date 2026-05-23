@@ -6,6 +6,24 @@ terms before scaling, and especially before re-enabling ads.
 
 _Last reviewed: 2026-05-23._
 
+## TailWright integration (separate commercial product)
+
+TailWright (separate paid auto-apply product, tailwright.com) may consume
+**only direct-from-employer ATS data**, never the licensed aggregators:
+
+- **`GET /api/ats-jobs`** (`app/api/ats-jobs/route.ts`) is a public read-only
+  index scoped to `source IN (greenhouse, lever, ashby)` only — company,
+  title, apply URL (the employer's own posting), with a `?view=companies`
+  count mode. **Aggregator rows (Adzuna/Reed/Jooble/Findwork/Muse) are
+  never exposed** — their terms forbid commercial reuse, and Adzuna
+  specifically prohibits "vacancy counts". Counts/titles here are derived
+  only from the safe sources.
+- Rationale: TailWright can only fetch/apply where an employer has a
+  reachable ATS/career page, so the aggregator-only rows are unactionable
+  anyway — scoping to ATS costs nothing actionable.
+- The earlier `applyops_ro` DB role + `ats_jobs` view (same scope, DB-level)
+  are now redundant given this API; keep or drop per preference.
+
 ## Posture (the load-bearing decisions)
 
 - **No ads / non-commercial.** AdSense is hard-disabled site-wide
