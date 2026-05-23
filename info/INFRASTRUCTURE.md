@@ -116,6 +116,13 @@ Track major spec changes here so future agents understand the history:
 - **2026-05-15:** Added first-party visitor analytics (cookieless). New `pageviews` table fed by `/api/track`; country comes from Cloudflare's `CF-IPCountry` header, visitor identity is a daily-rotating sha256(ip+ua+day+`PAGEVIEW_SALT`) truncated to 16 chars. No raw IP/UA at rest; no consent banner needed (legitimate-interest aggregated counting). Powers `/analytics/audience` country-shape dashboard. GA4/PostHog/Clarity remain wired for marketing-funnel use cases.
 - **2026-05-15:** Added social auto-posting (Facebook Page, Telegram channel, X/Twitter). New `social_posts` table tracks every (job, platform) post with `@@unique([jobId, platform])` as the dedupe gate. Scheduled via the existing maintenance queue at 08:30 / 12:30 / 17:30 UTC; per-platform daily caps (FB:3, Telegram:5, X:3) leave headroom under each API's free-tier ceiling. Platform adapters in `lib/social/` mirror the `JobSource` plugin pattern — one file per platform, env-gated via `SOCIAL_*_ENABLED` kill switches that default off. Curator scores candidates by recency + salary-present + description-length and round-robins by country.
 
+- **2026-05-23:** Disk hit 82% on the shared box — root cause was Docker
+  **build cache** (44 GB, never pruned), not data growth. RAM was healthy
+  (~440 MB across all four containers, 4 GB free). Reclaimed ~45 GB
+  (back to 22%) and added `docker builder prune -f --keep-storage 5GB` to
+  `deploy.sh` so it self-maintains. Conclusion: **no spec upgrade needed**
+  — current OVH VPS-1 has ample headroom; watch disk, not RAM.
+
 ## When in doubt
 
 Ask. Specifically ask about anything that:

@@ -56,7 +56,12 @@ for i in {1..30}; do
   sleep 2
 done
 
-echo "→ Pruning unused images…"
+echo "→ Pruning unused images + build cache…"
 docker image prune -f >/dev/null
+# Build cache is the disk hog on this shared box — buildx layers accumulate
+# every deploy and `image prune` doesn't touch them (they filled 44 GB /
+# 82% of disk before this was added). Keep ~5 GB of recent cache so builds
+# stay warm, drop the rest. Non-fatal: a prune hiccup shouldn't fail deploy.
+docker builder prune -f --keep-storage 5GB >/dev/null || true
 
 echo "✓ Deploy complete: $(git rev-parse --short HEAD)"
