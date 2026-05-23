@@ -50,6 +50,17 @@ export async function SiteFooter() {
           <Link href="/privacy" className="hover:text-foreground">
             Privacy
           </Link>
+          {/* Voluntary, cost-recovery only (no paywall / no gated data) —
+              keeps the site non-commercial for the job-API free tiers.
+              See info/COMPLIANCE.md. */}
+          <a
+            href="https://github.com/sponsors/ainikaventures"
+            target="_blank"
+            rel="noopener"
+            className="hover:text-foreground"
+          >
+            Support hosting
+          </a>
         </nav>
 
         {countries.length > 0 ? (

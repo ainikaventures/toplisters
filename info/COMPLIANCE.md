@@ -15,6 +15,14 @@ _Last reviewed: 2026-05-23._
   **personal / non-commercial** use only; running ads would put us in
   breach. Re-enabling ads is therefore a **terms-review trigger**, not a
   config flip — see "Re-enabling ads" below.
+- **Donations are cost-recovery only.** A GitHub Sponsors link
+  ("Support hosting", in the footer + `/about`) lets users help cover the
+  hosting bill. It is **voluntary, never paywalls or gates any listing,
+  and isn't tied to provider data** — framed as cost-recovery, not
+  profit, so the site stays non-commercial for the free tiers. This is a
+  softer version of the ads question; if scaling or if Adzuna's
+  "commercial organisation" line is ever in doubt, confirm with them
+  (Adzuna is the only provider whose terms would bite).
 - **Official APIs only.** Every source is an official REST API or a
   public ATS board endpoint. No scraping behind logins. LinkedIn and
   Indeed are deliberately not integrated (they restrict scraping/API

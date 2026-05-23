@@ -102,6 +102,22 @@ export default function AboutPage() {
           .
         </p>
 
+        <h2 className="mt-10 text-lg font-semibold">Keeping it free</h2>
+        <p className="mt-3 text-sm leading-relaxed text-foreground/75">
+          Toplisters is free and ad-free, and every listing is free to view.
+          If you&apos;d like to help cover the hosting bill, you can{" "}
+          <a
+            href="https://github.com/sponsors/ainikaventures"
+            target="_blank"
+            rel="noopener"
+            className="underline-offset-2 hover:underline"
+          >
+            sponsor the project on GitHub
+          </a>
+          . It&apos;s entirely optional and never unlocks or gates anything —
+          purely to keep the lights on.
+        </p>
+
         <h2 className="mt-10 text-lg font-semibold">Posting a role</h2>
         <p className="mt-3 text-sm leading-relaxed text-foreground/75">
           Free job posting (with magic-link confirmation, no account
