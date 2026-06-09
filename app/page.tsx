@@ -2,12 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { fetchJobs, type JobFilters } from "./jobs/_data/query";
-import { JobCard } from "./jobs/_components/JobCard";
+import { JobListItem } from "./_components/JobListItem";
 import { TrackJobsList } from "@/components/analytics/TrackJobsList";
+import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
+import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { countryFromHeaders } from "@/lib/pageviews";
 import { countryName } from "@/lib/format";
+import { slugify } from "@/lib/slug";
 import { pageOpenGraph } from "@/lib/seo/og";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   description:
@@ -57,9 +62,18 @@ export default async function Home() {
   const { jobs, total } = result;
   const regionLabel = country ? countryName(country) : null;
 
+  const breadcrumbs = [{ name: "Home", url: `${SITE_URL}/` }];
+  const listItems = jobs.map((job, i) => ({
+    position: i + 1,
+    url: `${SITE_URL}/job/${job.id}/${slugify(job.title)}`,
+    name: `${job.title} — ${job.companyName}`,
+  }));
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <SiteHeader />
+      <BreadcrumbJsonLd items={breadcrumbs} />
+      <ItemListJsonLd items={listItems} />
       <TrackJobsList
         listType={country ? "country" : "all"}
         country={country ?? undefined}
@@ -100,10 +114,10 @@ export default async function Home() {
           <EmptyState />
         ) : (
           <>
-            <ul className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+            <ul className="grid gap-3 sm:grid-cols-2">
               {jobs.map((job) => (
                 <li key={job.id}>
-                  <JobCard job={job} />
+                  <JobListItem job={job} />
                 </li>
               ))}
             </ul>
