@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+# ============================================================================
+# DEPRECATED — LEGACY OVH VPS DEPLOY PATH (Coolify migration, 2026-06-09).
+#
+# Production now deploys via Coolify on git-push to main (see DEPLOY.md).
+# This script targets the old self-managed stack (Caddy + Postgres + Redis
+# in docker/docker-compose.prod.yml), which was REMOVED from the repo during
+# the migration — so it will NOT run as-is against a fresh checkout. Retained
+# only as reference / emergency use on the legacy box during cutover. Delete
+# once the VPS is decommissioned.
+# ============================================================================
+#
 # Production deploy. Runs on the server, called by GitHub Actions on push
 # to main (or by hand: `ssh user@server "/opt/toplisters/deploy.sh"`).
 #

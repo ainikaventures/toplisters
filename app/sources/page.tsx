@@ -43,9 +43,9 @@ export default async function SourcesPage() {
           <p className="mt-3 max-w-2xl text-sm text-foreground/70">
             Toplisters aggregates jobs from {rows.length} public sources —
             free APIs, sitemap-discoverable JSON-LD postings, and direct-
-            from-employer ATS feeds. We don't scrape behind logins or
-            republish anything we don't have permission to. Click through
-            to any source's homepage for the original posting.
+            from-employer ATS feeds. We don&apos;t scrape behind logins or
+            republish anything we don&apos;t have permission to. Click through
+            to any source&apos;s homepage for the original posting.
           </p>
           <p className="mt-3 text-xs text-foreground/60">
             {fresh} of {rows.length} sources are currently fresh ·{" "}
@@ -113,10 +113,10 @@ export default async function SourcesPage() {
             source produced an active row within roughly twice its scheduled
             cadence (60–90 minutes for most APIs).{" "}
             <strong className="text-foreground/80">Stale</strong> means the
-            existing rows are still showing but the worker hasn't refreshed
+            existing rows are still showing but the worker hasn&apos;t refreshed
             recently — usually transient, sometimes a sign of an API outage.{" "}
             <strong className="text-foreground/80">No data yet</strong> means
-            we either haven't run the source for the first time or it
+            we either haven&apos;t run the source for the first time or it
             returned zero rows on its last run.
           </p>
           <p>

@@ -1,0 +1,54 @@
+# LOCAL DEVELOPMENT ONLY — never deployed.
+#
+# Spins up Postgres + Redis for a host-run `next dev` / `npm run worker`.
+# In production these are EXTERNAL Coolify-managed resources reached via
+# DATABASE_URL / REDIS_URL — this file is not part of the deploy path
+# (see docker-compose.yml + DEPLOY.md).
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d
+#   # then point DATABASE_URL / REDIS_URL in .env at localhost (see .env.example)
+#
+# Ports bind to 127.0.0.1 only (loopback) so nothing is exposed off-box.
+# Role-splitting (toplisters_app) was dropped in the Coolify migration —
+# dev uses the single `toplisters` role, matching a single managed DB role.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: toplisters-dev-postgres
+    restart: unless-stopped
+    # 5433 internally to match the production isolation convention
+    # (info/INFRASTRUCTURE.md §1: Postgres on 5433, never 5432).
+    command: postgres -p 5433
+    environment:
+      POSTGRES_USER: toplisters
+      POSTGRES_PASSWORD: toplisters
+      POSTGRES_DB: toplisters
+    ports:
+      - "127.0.0.1:5433:5433"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toplisters -d toplisters -p 5433"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: toplisters-dev-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:

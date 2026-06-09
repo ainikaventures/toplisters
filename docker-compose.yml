@@ -1,44 +1,51 @@
+# Coolify deploy stack — web + worker only.
+#
+# Postgres and Redis are EXTERNAL Coolify-managed resources, reached via
+# DATABASE_URL / REDIS_URL injected by Coolify (NOT shipped here). There are
+# NO host `ports:` — Traefik reaches the web service over the internal
+# network on container port 8080 (host port 8000 is reserved). TLS is
+# terminated at the proxy; the app speaks plain HTTP.
+#
+# Migrations run as a Coolify pre-deploy command (see DEPLOY.md), not in
+# the web entrypoint, so concurrent web replicas never race the schema.
+#
+# Local development uses docker-compose.dev.yml for Postgres + Redis.
+
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: toplisters-postgres
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+      # NEXT_PUBLIC_* must be inlined at build time. Coolify forwards these
+      # from the app's build-time env. Empty fallbacks keep the build green.
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+        NEXT_PUBLIC_POSTHOG_KEY: ${NEXT_PUBLIC_POSTHOG_KEY:-}
+        NEXT_PUBLIC_POSTHOG_HOST: ${NEXT_PUBLIC_POSTHOG_HOST:-}
+        NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
+        NEXT_PUBLIC_CLARITY_ID: ${NEXT_PUBLIC_CLARITY_ID:-}
     restart: unless-stopped
-    # Bind to 5433 internally so the dev box stays compatible with the
-    # production isolation rule (info/INFRASTRUCTURE.md §1: Postgres on
-    # 5433, never 5432). Same port externally to keep DATABASE_URL the
-    # same shape across dev + prod.
-    command: postgres -p 5433
     environment:
-      POSTGRES_USER: toplisters
-      POSTGRES_PASSWORD: toplisters
-      POSTGRES_DB: toplisters
-      # Init script reads this to create the limited runtime role.
-      TOPLISTERS_APP_PASSWORD: toplisters_app
-    ports:
-      - "5433:5433"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres-init.d:/docker-entrypoint-initdb.d:ro
+      NODE_ENV: production
+      # Bind the standalone server to all interfaces on the platform port.
+      HOSTNAME: 0.0.0.0
+      PORT: 8080
+    # `expose` (not `ports`) — visible to the proxy on the internal network,
+    # no host-port binding.
+    expose:
+      - "8080"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U toplisters -d toplisters -p 5433"]
-      interval: 5s
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 15s
       timeout: 5s
-      retries: 10
+      retries: 3
+      start_period: 20s
 
-  redis:
-    image: redis:7-alpine
-    container_name: toplisters-redis
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
     restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-volumes:
-  postgres_data:
-  redis_data:
+    environment:
+      NODE_ENV: production
+    # No ports — headless background process talking outbound to DB + Redis.

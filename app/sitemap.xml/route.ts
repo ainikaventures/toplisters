@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { JOBS_PER_SHARD } from "./../sitemap/[id]/route";
+import { JOBS_PER_SHARD } from "@/lib/sitemap";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;

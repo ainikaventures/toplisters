@@ -22,8 +22,8 @@ When you find a conflict:
 - **Worker:** Node 20 + BullMQ, concurrency = 1 per source
 - **Postgres:** 16-alpine, with FTS via tsvector/GIN — NO Elasticsearch
 - **Redis:** 7-alpine, for BullMQ queues + cache only
-- **Reverse proxy:** Caddy 2 (auto-HTTPS)
-- **Orchestration:** docker-compose.prod.yml, deploy via `git pull && ./deploy.sh`
+- **Reverse proxy:** Traefik v3 (managed by Coolify, auto-TLS) — *was Caddy 2; see 2026-06-09 amendment*
+- **Orchestration:** Coolify PaaS, deploy via git-push to `main` (see `DEPLOY.md`) — *was docker-compose.prod.yml + `./deploy.sh`; see 2026-06-09 amendment*
 - **ORM:** Prisma 7 (locked at current minor version — already migrated and stable; do NOT bump to v8 when it lands without an explicit decision)
 
 ## Deployment target (locked)
@@ -122,6 +122,33 @@ Track major spec changes here so future agents understand the history:
   (back to 22%) and added `docker builder prune -f --keep-storage 5GB` to
   `deploy.sh` so it self-maintains. Conclusion: **no spec upgrade needed**
   — current OVH VPS-1 has ample headroom; watch disk, not RAM.
+
+- **2026-06-09:** **Migrated deploy off the self-managed OVH VPS onto a
+  Coolify PaaS** (Traefik v3 proxy, auto-TLS) on a dedicated server.
+  Platform contract: web binds `0.0.0.0:${PORT:-8080}` with no in-app TLS
+  and no host ports (Traefik reaches it on the internal network; host port
+  8000 reserved); dependency-free `GET /health` for the proxy probe
+  (`/api/health` remains the DB+Redis-aware check); stateless with config
+  100% via env. **Removed:** Caddy (`docker/Caddyfile`), the VPS prod stack
+  (`docker/docker-compose.prod.yml` — Postgres/Redis/Caddy services + host
+  ports), the `docker/postgres-init.d` app-user bootstrap, and
+  `scripts/setup-app-user.sh`. **Dropped the `toplisters_app`/`toplisters`
+  runtime-vs-owner role split** — Coolify's managed Postgres + Redis are
+  external resources reached via `DATABASE_URL`/`REDIS_URL`, with a single
+  role serving runtime + migrations (`MIGRATION_DATABASE_URL` optional).
+  `prisma migrate deploy` now runs as a Coolify **pre-deploy** step, not in
+  the web entrypoint. Web + worker images are multi-stage, non-root (`node`
+  user), Next standalone. `deploy.sh` + `.github/workflows/deploy.yml` are
+  deprecated (manual-only) and retained for the legacy box during cutover.
+  `docker-compose.dev.yml` keeps Postgres/Redis for local dev only. Removed
+  the temporary `ignoreBuildErrors`/`ignoreDuringBuilds` flags in
+  `next.config.mjs` after fixing the type/lint errors they masked.
+  **Also (product):** swapped the landing page — `/` now shows the latest
+  jobs localized to the visitor's `CF-IPCountry` region (falling back to
+  global), and the 3D globe moved to `/globe`.
+  Note: the spec's "single OVHcloud VPS-1" deployment-target and budget
+  sections above now describe the *legacy* box; the resource budgets still
+  serve as sane guardrails on the new server.
 
 ## When in doubt
 
