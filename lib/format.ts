@@ -102,3 +102,28 @@ export function relativeTime(date: Date | string): string {
   if (days < 30) return `${days}d ago`;
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
+
+const WORK_MODE_LABELS: Record<string, string> = {
+  remote: "Remote",
+  hybrid: "Hybrid",
+  onsite: "On-site",
+  unknown: "",
+};
+
+/** "Remote" / "Hybrid" / "On-site" — empty string for unknown/missing. */
+export function workModeLabel(mode: string | null | undefined): string {
+  return mode ? WORK_MODE_LABELS[mode] ?? "" : "";
+}
+
+const JOB_TYPE_LABELS: Record<string, string> = {
+  full_time: "Full-time",
+  part_time: "Part-time",
+  contract: "Contract",
+  temp: "Temp",
+  internship: "Internship",
+};
+
+/** "Full-time" / "Contract" / … — empty string for unknown/missing. */
+export function jobTypeLabel(type: string | null | undefined): string {
+  return type ? JOB_TYPE_LABELS[type] ?? "" : "";
+}
