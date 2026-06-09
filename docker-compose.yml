@@ -40,6 +40,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+    # Persist the regeneratable banner cache across redeploys (DEPLOY.md §7).
+    # Optional by contract, but it avoids re-generating ~21k banners on first
+    # traffic after each deploy. Migrated banners are seeded into this volume.
+    volumes:
+      - "banners-data:/app/public/banners"
 
   worker:
     build:
@@ -49,3 +54,6 @@ services:
     environment:
       NODE_ENV: production
     # No ports — headless background process talking outbound to DB + Redis.
+
+volumes:
+  banners-data:
