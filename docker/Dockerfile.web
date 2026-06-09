@@ -14,7 +14,11 @@ RUN apk add --no-cache libc6-compat openssl
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-RUN npm ci --no-audit --no-fund
+# --include=dev: build-time tooling (tailwindcss, @tailwindcss/postcss, etc.)
+# lives in devDependencies. Coolify injects the app's NODE_ENV=production as a
+# build ARG into every stage, which would make `npm ci` omit devDependencies
+# and break `next build`. Force-include dev deps so the build is deterministic.
+RUN npm ci --include=dev --no-audit --no-fund
 
 # ─── build ────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS build
