@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/slug";
 import { cityToSlug, countryToSlug } from "@/lib/locations";
+import { JOBS_PER_SHARD } from "@/lib/sitemap";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const MIN_JOBS_PER_CITY = 5;
-export const JOBS_PER_SHARD = 40000;
 
 interface SitemapUrl {
   loc: string;
@@ -62,6 +62,7 @@ async function metaShard(): Promise<SitemapUrl[]> {
   const staticEntries: SitemapUrl[] = [
     { loc: `${SITE_URL}/`, lastmod: now, changefreq: "daily", priority: 1.0 },
     { loc: `${SITE_URL}/jobs`, lastmod: now, changefreq: "daily", priority: 0.9 },
+    { loc: `${SITE_URL}/globe`, lastmod: now, changefreq: "daily", priority: 0.7 },
     { loc: `${SITE_URL}/about`, lastmod: now, changefreq: "yearly", priority: 0.4 },
     { loc: `${SITE_URL}/privacy`, lastmod: now, changefreq: "yearly", priority: 0.3 },
   ];
