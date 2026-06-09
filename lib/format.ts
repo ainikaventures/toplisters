@@ -127,3 +127,20 @@ const JOB_TYPE_LABELS: Record<string, string> = {
 export function jobTypeLabel(type: string | null | undefined): string {
   return type ? JOB_TYPE_LABELS[type] ?? "" : "";
 }
+
+/**
+ * Standardized plain-text excerpt for listing cards. Collapses whitespace
+ * and caps to `maxWords` (default 60 — within the 50–100 word target),
+ * appending an ellipsis when truncated so every card reads at a consistent
+ * length. Pair with a line-clamp in the UI for uniform card height.
+ */
+export function excerpt(
+  text: string | null | undefined,
+  maxWords = 60,
+): string {
+  if (!text) return "";
+  const words = text.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  if (words.length === 0) return "";
+  if (words.length <= maxWords) return words.join(" ");
+  return words.slice(0, maxWords).join(" ") + "…";
+}
