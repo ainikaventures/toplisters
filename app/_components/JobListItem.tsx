@@ -7,6 +7,7 @@ import {
   workModeLabel,
   jobTypeLabel,
   relativeTime,
+  excerpt,
 } from "@/lib/format";
 import { slugify } from "@/lib/slug";
 
@@ -25,6 +26,7 @@ export function JobListItem({ job }: { job: Job }) {
   const salary = salaryLabel(job);
   const workMode = workModeLabel(job.workMode);
   const jobType = jobTypeLabel(job.jobType);
+  const summary = excerpt(job.descriptionText, 60);
   const postedIso = new Date(job.postedDate).toISOString();
 
   const tags = [workMode, jobType, salary].filter(Boolean) as string[];
@@ -62,6 +64,12 @@ export function JobListItem({ job }: { job: Job }) {
           <span className="mx-1.5 text-foreground/30">·</span>
           {location}
         </p>
+
+        {summary ? (
+          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-foreground/60">
+            {summary}
+          </p>
+        ) : null}
 
         {tags.length > 0 ? (
           <ul className="mt-2 flex flex-wrap gap-1.5">
