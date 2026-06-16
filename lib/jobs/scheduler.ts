@@ -15,6 +15,7 @@ const DEFAULT_INTERVAL_MIN: Record<string, number> = {
   reed: 60,
   the_muse: 90,
   findwork: 60,
+  recruitmentrevolution: 180,
 };
 
 /**
@@ -30,6 +31,7 @@ const STAGGER_OFFSET_MIN: Record<string, number> = {
   reed: 20,
   the_muse: 25,
   findwork: 30,
+  recruitmentrevolution: 35,
 };
 
 export function intervalFor(sourceName: string): number {
