@@ -76,13 +76,15 @@ revoke with `npm run apikey -- revoke <prefix>`). Missing/invalid → `401`.
 | Param | Meaning |
 |---|---|
 | `q` | Full-text across title + company + description |
-| `title` | Comma-separated title keywords, OR-matched (`product owner,business analyst`) |
+| `title_include` (alias `title`) | Comma-separated title keywords, OR-matched (`product owner,business analyst`) |
+| `title_exclude` | Comma-separated title keywords — drop the job if its title matches ANY |
 | `location` | Substring match on the location text (`London`, `United Kingdom`) |
 | `country` | Country name or ISO-2 (`United Kingdom`, `GB`) |
 | `remote` | `true` \| `false` |
-| `posted_after` | ISO-8601 date/datetime — jobs posted on/after (for incremental scans) |
-| `max_distance_mi` | Only jobs within N miles of CV1 (Coventry) — server-side commute gate |
+| `near` + `radius_mi` | Geo gate: `near=lat,lng` (e.g. `52.4068,-1.5197`) + radius in miles. Candidate-agnostic — no baked-in origin |
+| `salary_min` + `salary_period` | Salary floor (integer) + optional period (`hourly`\|`daily`\|`monthly`\|`yearly`). Floor excludes unknown-salary rows |
 | `source_type` | `direct` (employer/ATS apply link) \| `aggregator` (provider wrapper) |
+| `since` (alias `posted_after`) | ISO-8601 date/datetime — jobs posted on/after (for incremental scans) |
 | `page` | 1-based page (default 1) |
 | `per_page` | default 100, max 200 |
 
@@ -92,8 +94,9 @@ response carries `X-RateLimit-Limit` / `X-RateLimit-Remaining` /
 `X-RateLimit-Reset` (default 600 req/min/key, override `JOBS_API_RATE_LIMIT`).
 
 Each job: `id`, `title`, `company`, `location` (string), `location_structured`
-(`{city, region, country, country_code, lat, lng}`), `distance_from_cv1_mi`
-(number or null), `country`, `remote`, `url` (the toplisters post page —
+(`{city, region, country, country_code, lat, lng}`), `distance_mi` (miles from
+the `near` origin, or null when `near` not given), `country`, `remote`, `url`
+(the toplisters post page —
 always present), `apply_url` (as ingested — the wrapper for aggregator
 sources), `apply_url_direct` (the direct employer/source link — present for
 `source_type: "direct"`, null for aggregator wrappers), `source`,
