@@ -144,3 +144,61 @@ export function excerpt(
   if (words.length <= maxWords) return words.join(" ");
   return words.slice(0, maxWords).join(" ") + "…";
 }
+
+/** Char-bounded snippet (cut on a word boundary). For API payloads. */
+export function charSnippet(
+  text: string | null | undefined,
+  maxChars = 300,
+): string {
+  if (!text) return "";
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= maxChars) return clean;
+  const cut = clean.slice(0, maxChars);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut) + "…";
+}
+
+const PERIOD_WORD: Record<string, string> = {
+  hourly: "hr",
+  daily: "day",
+  monthly: "mo",
+  yearly: "yr",
+};
+
+/**
+ * Full-number salary string for API consumers, e.g. "£60,000 - £70,000 / yr",
+ * "From $90,000 / yr", or null when no salary info. Uses the row currency
+ * when present; falls back to grouped numbers otherwise.
+ */
+export function salaryRangeText(args: {
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryCurrency: string | null;
+  salaryPeriod: string | null;
+}): string | null {
+  const { salaryMin, salaryMax, salaryCurrency, salaryPeriod } = args;
+  if (!salaryMin && !salaryMax) return null;
+
+  const fmt = (n: number) => {
+    if (salaryCurrency) {
+      try {
+        return new Intl.NumberFormat("en", {
+          style: "currency",
+          currency: salaryCurrency,
+          maximumFractionDigits: 0,
+        }).format(n);
+      } catch {
+        /* unknown currency code — fall through to plain number */
+      }
+    }
+    return new Intl.NumberFormat("en", { maximumFractionDigits: 0 }).format(n);
+  };
+
+  let amount: string;
+  if (salaryMin && salaryMax) amount = `${fmt(salaryMin)} - ${fmt(salaryMax)}`;
+  else if (salaryMin) amount = `From ${fmt(salaryMin)}`;
+  else amount = `Up to ${fmt(salaryMax!)}`;
+
+  const period = salaryPeriod ? PERIOD_WORD[salaryPeriod] : null;
+  return period ? `${amount} / ${period}` : amount;
+}
