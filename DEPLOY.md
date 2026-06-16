@@ -139,6 +139,16 @@ Set these in Coolify (the app's Environment Variables).
 | `PAGEVIEW_SALT` | Daily-rotating visitor-hash salt ([`lib/pageviews.ts`](lib/pageviews.ts)). Set a private random string. |
 | `IP_SALT` | IP-hash salt for the captcha/rate-limit ([`lib/captcha.ts`](lib/captcha.ts)). Falls back to `ADMIN_PASSWORD` then a dev default. |
 
+### Read-only jobs API (`GET /api/v1/jobs`)
+
+| Var | Purpose |
+|---|---|
+| `JOBS_API_KEYS` | Comma-separated plaintext API keys (zero-DB bootstrap). A request key is accepted if it matches one of these, or a non-revoked hashed key in the `api_keys` table (managed via `npm run apikey`). |
+| `JOBS_API_RATE_LIMIT` | Per-key requests/minute (default 600). Fails open if Redis is down. |
+
+The `api_keys` table ships in migration `20260616000000_add_api_keys`, applied
+by the pre-deploy `prisma migrate deploy` (§5). See README → "Jobs API".
+
 ### Social auto-posting (all default off)
 
 | Var | Purpose |

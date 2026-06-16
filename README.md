@@ -31,7 +31,8 @@ budget + API notes at [`info/BUDGET_AND_APIS.md`](info/BUDGET_AND_APIS.md).
 
 | URL | What |
 |---|---|
-| `/` | 3D globe — every active role plotted as a city cluster |
+| `/` | Latest jobs, localized to the visitor's region (Cloudflare `CF-IPCountry`), global fallback |
+| `/globe` | 3D globe — every active role plotted as a city cluster |
 | `/jobs` | Filtered listing (search, country, category, work mode, salary) |
 | `/jobs/locations` | Browse-by-location directory |
 | `/jobs/[country]` | Country index → cities |
@@ -48,6 +49,63 @@ budget + API notes at [`info/BUDGET_AND_APIS.md`](info/BUDGET_AND_APIS.md).
 | `/api/jobs/submit` | POST → user-submitted jobs |
 | `/api/jobs/submit/confirm` | GET → magic-link confirmation |
 | `/api/geoip` | Cookie-cached ipapi.co wrapper |
+| `/api/v1/jobs` | Read-only JSON search API (API-key auth) — see below |
+| `/api/ats-jobs` | Public ATS-only discovery index (compliance-scoped) |
+
+## Jobs API (`GET /api/v1/jobs`)
+
+Read-only JSON search over active job rows, for a trusted server-to-server
+consumer (e.g. an external scanner). Supports keyword / title / location /
+country / remote / date filtering with pagination.
+
+**Base URL:** `https://toplisters.xyz/api/v1/jobs`
+
+**Auth** — send the key as either header:
+
+```
+Authorization: Bearer <API_KEY>
+x-api-key: <API_KEY>
+```
+
+Keys come from `JOBS_API_KEYS` (comma-separated plaintext, zero-DB bootstrap)
+and/or the DB via `npm run apikey -- create "<label>"` (stores only the hash;
+revoke with `npm run apikey -- revoke <prefix>`). Missing/invalid → `401`.
+
+**Query params** (all optional, AND-combined):
+
+| Param | Meaning |
+|---|---|
+| `q` | Full-text across title + company + description |
+| `title` | Comma-separated title keywords, OR-matched (`product owner,business analyst`) |
+| `location` | Substring match on the location text (`London`, `United Kingdom`) |
+| `country` | Country name or ISO-2 (`United Kingdom`, `GB`) |
+| `remote` | `true` \| `false` |
+| `posted_after` | ISO-8601 date/datetime — jobs posted on/after (for incremental scans) |
+| `page` | 1-based page (default 1) |
+| `per_page` | default 100, max 200 |
+
+**Responses:** `200` with `"jobs": []` on no matches; `400` bad params,
+`401` invalid key, `429` rate limited — all `{ "error": "..." }`. Every
+response carries `X-RateLimit-Limit` / `X-RateLimit-Remaining` /
+`X-RateLimit-Reset` (default 600 req/min/key, override `JOBS_API_RATE_LIMIT`).
+
+Each job: `id`, `title`, `company`, `location`, `country`, `remote`, `url`
+(the toplisters post page — always present), `apply_url` (the original/
+external apply link, from the normalised field), `source`, `posted_at`,
+`salary` (or null), `description`, `description_html`, `description_snippet`,
+plus top-level `next_cursor` (null — pagination is page-based).
+
+**Examples:**
+
+```bash
+# UK product/analyst roles posted since June, 5 per page
+curl -s "https://toplisters.xyz/api/v1/jobs?title=product%20owner,business%20analyst,data%20analyst&country=United%20Kingdom&per_page=5&posted_after=2026-06-01" \
+  -H "Authorization: Bearer $API_KEY" | jq .
+
+# Remote react jobs, page 2
+curl -s "https://toplisters.xyz/api/v1/jobs?q=react&remote=true&page=2" \
+  -H "x-api-key: $API_KEY" | jq .
+```
 
 ## Local development
 

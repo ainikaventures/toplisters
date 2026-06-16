@@ -17,7 +17,8 @@
     "reclassify-collar": "tsx scripts/reclassify-collar.ts",
     "deactivate-appcast": "tsx scripts/deactivate-appcast.ts",
     "send-digests": "tsx scripts/send-digests.ts",
-    "post-to-social": "tsx scripts/post-to-social.ts"
+    "post-to-social": "tsx scripts/post-to-social.ts",
+    "apikey": "tsx scripts/apikey.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
