@@ -7,10 +7,9 @@ import { checkRateLimit } from "@/lib/api/ratelimit";
 import { resolveCountryCode } from "@/lib/api/country";
 import {
   sourceType,
-  distanceFromCv1Mi,
   AGGREGATOR_SOURCES,
-  CV1,
   EARTH_RADIUS_MI,
+  haversineMi,
 } from "@/lib/api/sources";
 import {
   locationLabel,
@@ -88,10 +87,13 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const q = sp.get("q")?.trim() || null;
 
-  const titleTerms = (sp.get("title") ?? "")
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
+  const csv = (v: string | null) =>
+    (v ?? "").split(",").map((t) => t.trim()).filter(Boolean);
+
+  // title_include (preferred) / title — comma-separated, OR-matched.
+  const titleTerms = csv(sp.get("title_include") ?? sp.get("title"));
+  // title_exclude — comma-separated; drop the job if its title matches ANY.
+  const excludeTerms = csv(sp.get("title_exclude"));
 
   const location = sp.get("location")?.trim() || null;
 
@@ -110,25 +112,60 @@ export async function GET(request: Request): Promise<NextResponse> {
     else return err(400, "remote must be 'true' or 'false'", headers);
   }
 
+  // since (preferred) / posted_after — ISO-8601, for incremental scans.
   let postedAfter: Date | null = null;
-  const postedAfterRaw = sp.get("posted_after");
-  if (postedAfterRaw) {
-    const d = new Date(postedAfterRaw);
+  const sinceRaw = sp.get("since") ?? sp.get("posted_after");
+  if (sinceRaw) {
+    const d = new Date(sinceRaw);
     if (Number.isNaN(d.getTime())) {
-      return err(400, "posted_after must be an ISO-8601 date/datetime", headers);
+      return err(400, "since/posted_after must be an ISO-8601 date/datetime", headers);
     }
     postedAfter = d;
   }
 
-  // Commute gate: only jobs within N miles of CV1 (Coventry).
-  let maxDistanceMi: number | null = null;
-  const maxDistRaw = sp.get("max_distance_mi");
-  if (maxDistRaw) {
-    const n = Number.parseFloat(maxDistRaw);
-    if (!Number.isFinite(n) || n <= 0) {
-      return err(400, "max_distance_mi must be a positive number", headers);
+  // Geo gate: near=<lat,lng> + radius_mi=<n> — candidate-agnostic, no baked-in origin.
+  let near: { lat: number; lng: number } | null = null;
+  const nearRaw = sp.get("near")?.trim();
+  if (nearRaw) {
+    const m = nearRaw.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+    if (!m) return err(400, 'near must be "lat,lng" (e.g. "52.4068,-1.5197")', headers);
+    const lat = Number.parseFloat(m[1]);
+    const lng = Number.parseFloat(m[2]);
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return err(400, "near lat/lng out of range", headers);
     }
-    maxDistanceMi = n;
+    near = { lat, lng };
+  }
+  let radiusMi: number | null = null;
+  const radiusRaw = sp.get("radius_mi");
+  if (radiusRaw) {
+    const n = Number.parseFloat(radiusRaw);
+    if (!Number.isFinite(n) || n <= 0) {
+      return err(400, "radius_mi must be a positive number", headers);
+    }
+    radiusMi = n;
+  }
+  if (radiusMi != null && !near) {
+    return err(400, "radius_mi requires near=<lat,lng>", headers);
+  }
+
+  // Salary floor + optional period.
+  let salaryFloor: number | null = null;
+  const salaryMinRaw = sp.get("salary_min");
+  if (salaryMinRaw) {
+    const n = Number.parseInt(salaryMinRaw, 10);
+    if (!Number.isFinite(n) || n < 0) {
+      return err(400, "salary_min must be a non-negative integer", headers);
+    }
+    salaryFloor = n;
+  }
+  let salaryPeriod: string | null = null;
+  const periodRaw = sp.get("salary_period")?.trim().toLowerCase();
+  if (periodRaw) {
+    if (!["hourly", "daily", "monthly", "yearly"].includes(periodRaw)) {
+      return err(400, "salary_period must be hourly|daily|monthly|yearly", headers);
+    }
+    salaryPeriod = periodRaw;
   }
 
   // Filter by apply-link type: "direct" (employer/ATS) or "aggregator" (wrapper).
@@ -157,6 +194,10 @@ export async function GET(request: Request): Promise<NextResponse> {
     const ors = titleTerms.map((t) => Prisma.sql`title ILIKE ${"%" + t + "%"}`);
     cond.push(Prisma.sql`(${Prisma.join(ors, " OR ")})`);
   }
+  if (excludeTerms.length) {
+    const ors = excludeTerms.map((t) => Prisma.sql`title ILIKE ${"%" + t + "%"}`);
+    cond.push(Prisma.sql`NOT (${Prisma.join(ors, " OR ")})`);
+  }
   if (location) cond.push(Prisma.sql`location_text ILIKE ${"%" + location + "%"}`);
   if (countryCode) cond.push(Prisma.sql`country_code = ${countryCode}`);
   if (remote === true) cond.push(Prisma.sql`work_mode::text = 'remote'`);
@@ -164,13 +205,19 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (postedAfter) cond.push(Prisma.sql`posted_date >= ${postedAfter}`);
   if (sourceTypeFilter === "direct") cond.push(Prisma.sql`source <> ALL(${AGGREGATOR_SOURCES})`);
   if (sourceTypeFilter === "aggregator") cond.push(Prisma.sql`source = ANY(${AGGREGATOR_SOURCES})`);
-  if (maxDistanceMi != null) {
+  if (near && radiusMi != null) {
     // Haversine in SQL (no PostGIS dependency). Exclude ungeocoded/null-island rows.
     cond.push(Prisma.sql`(lat <> 0 OR lng <> 0)`);
     cond.push(
-      Prisma.sql`${EARTH_RADIUS_MI} * 2 * asin(sqrt(power(sin(radians(lat - ${CV1.lat}) / 2), 2) + cos(radians(${CV1.lat})) * cos(radians(lat)) * power(sin(radians(lng - ${CV1.lng}) / 2), 2))) <= ${maxDistanceMi}`,
+      Prisma.sql`${EARTH_RADIUS_MI} * 2 * asin(sqrt(power(sin(radians(lat - ${near.lat}) / 2), 2) + cos(radians(${near.lat})) * cos(radians(lat)) * power(sin(radians(lng - ${near.lng}) / 2), 2))) <= ${radiusMi}`,
     );
   }
+  // Salary floor: keep jobs whose known salary clears the floor (unknown-salary
+  // rows are excluded when a floor is set). Optionally constrain the period.
+  if (salaryFloor != null) {
+    cond.push(Prisma.sql`(salary_max >= ${salaryFloor} OR salary_min >= ${salaryFloor})`);
+  }
+  if (salaryPeriod) cond.push(Prisma.sql`salary_period::text = ${salaryPeriod}`);
   const whereSql = Prisma.join(cond, " AND ");
 
   // ── Count + page of ids, then materialise typed rows in order ──
@@ -196,6 +243,10 @@ export async function GET(request: Request): Promise<NextResponse> {
   const items = jobs.map((j) => {
     const st = sourceType(j.source);
     const hasSalary = j.salaryMin != null || j.salaryMax != null;
+    const distance_mi =
+      near && !(j.lat === 0 && j.lng === 0)
+        ? Math.round(haversineMi(near.lat, near.lng, j.lat, j.lng) * 10) / 10
+        : null;
     return {
       id: j.id,
       title: j.title,
@@ -210,7 +261,8 @@ export async function GET(request: Request): Promise<NextResponse> {
         lat: j.lat,
         lng: j.lng,
       },
-      distance_from_cv1_mi: distanceFromCv1Mi(j.lat, j.lng),
+      // Distance from the `near` origin (miles); null when `near` not given.
+      distance_mi,
       country: countryName(j.countryCode),
       remote: j.workMode === "remote",
       // The toplisters post page — always present.
