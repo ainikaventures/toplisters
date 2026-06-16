@@ -72,6 +72,7 @@ TailWright (separate paid auto-apply product, tailwright.com) may consume
 | **Arbeitnow** | Public JSON feed | Open API, no mandated format | "via Arbeitnow" → apply URL. |
 | **Greenhouse / Lever / Ashby** | Public ATS board APIs (unauthenticated) | None — employer's own data | "via the company's careers page"; apply URLs (incl. `gh_jid` tracking) passed through unmodified. |
 | **JSON-LD sources** | schema.org `JobPosting` from public pages | per-site | "via {site}" (configured in `lib/sources/jsonld/sites.ts`). |
+| **Recruitment Revolution** | Public WordPress REST API (`/wp-json/wp/v2/job-posting`, unauthenticated) | None found public | "via Recruitment Revolution" → the vacancy page (where you apply). Recruiter's own postings; `companyName` is the recruiter, link-out only, no scraping behind logins. |
 
 Default render for any source without a special case: **"via {displayName}"
 → apply URL, `rel="noopener nofollow"`**. Adzuna and RemoteOK are the only
