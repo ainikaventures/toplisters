@@ -6,6 +6,13 @@ import { authenticate } from "@/lib/api/auth";
 import { checkRateLimit } from "@/lib/api/ratelimit";
 import { resolveCountryCode } from "@/lib/api/country";
 import {
+  sourceType,
+  distanceFromCv1Mi,
+  AGGREGATOR_SOURCES,
+  CV1,
+  EARTH_RADIUS_MI,
+} from "@/lib/api/sources";
+import {
   locationLabel,
   countryName,
   salaryRangeText,
@@ -113,6 +120,25 @@ export async function GET(request: Request): Promise<NextResponse> {
     postedAfter = d;
   }
 
+  // Commute gate: only jobs within N miles of CV1 (Coventry).
+  let maxDistanceMi: number | null = null;
+  const maxDistRaw = sp.get("max_distance_mi");
+  if (maxDistRaw) {
+    const n = Number.parseFloat(maxDistRaw);
+    if (!Number.isFinite(n) || n <= 0) {
+      return err(400, "max_distance_mi must be a positive number", headers);
+    }
+    maxDistanceMi = n;
+  }
+
+  // Filter by apply-link type: "direct" (employer/ATS) or "aggregator" (wrapper).
+  let sourceTypeFilter: "direct" | "aggregator" | null = null;
+  const stRaw = sp.get("source_type");
+  if (stRaw !== null) {
+    if (stRaw === "direct" || stRaw === "aggregator") sourceTypeFilter = stRaw;
+    else return err(400, "source_type must be 'direct' or 'aggregator'", headers);
+  }
+
   const page = Math.max(1, Number.parseInt(sp.get("page") ?? "1", 10) || 1);
   const perPageRaw = Number.parseInt(sp.get("per_page") ?? "", 10);
   const perPage = Math.min(
@@ -136,6 +162,15 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (remote === true) cond.push(Prisma.sql`work_mode::text = 'remote'`);
   if (remote === false) cond.push(Prisma.sql`work_mode::text <> 'remote'`);
   if (postedAfter) cond.push(Prisma.sql`posted_date >= ${postedAfter}`);
+  if (sourceTypeFilter === "direct") cond.push(Prisma.sql`source <> ALL(${AGGREGATOR_SOURCES})`);
+  if (sourceTypeFilter === "aggregator") cond.push(Prisma.sql`source = ANY(${AGGREGATOR_SOURCES})`);
+  if (maxDistanceMi != null) {
+    // Haversine in SQL (no PostGIS dependency). Exclude ungeocoded/null-island rows.
+    cond.push(Prisma.sql`(lat <> 0 OR lng <> 0)`);
+    cond.push(
+      Prisma.sql`${EARTH_RADIUS_MI} * 2 * asin(sqrt(power(sin(radians(lat - ${CV1.lat}) / 2), 2) + cos(radians(${CV1.lat})) * cos(radians(lat)) * power(sin(radians(lng - ${CV1.lng}) / 2), 2))) <= ${maxDistanceMi}`,
+    );
+  }
   const whereSql = Prisma.join(cond, " AND ");
 
   // ── Count + page of ids, then materialise typed rows in order ──
@@ -158,27 +193,53 @@ export async function GET(request: Request): Promise<NextResponse> {
     jobs = unordered.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
   }
 
-  const items = jobs.map((j) => ({
-    id: j.id,
-    title: j.title,
-    company: j.companyName,
-    location: locationLabel({ city: j.city, countryCode: j.countryCode }),
-    country: countryName(j.countryCode),
-    remote: j.workMode === "remote",
-    // The toplisters post page — always present.
-    url: `${SITE_URL}/job/${j.id}/${slugify(j.title)}`,
-    // The original/external apply link, extracted at ingestion (normalised
-    // field). Reliably populated; null only in the rare case it's unset.
-    apply_url: j.applyUrl ?? null,
-    source: j.source,
-    posted_at: j.postedDate ? j.postedDate.toISOString() : null,
-    salary: salaryRangeText(j),
-    // Full post body (text + HTML) so the consumer can extract deeper links
-    // itself if apply_url isn't enough.
-    description: j.descriptionText ?? null,
-    description_html: j.descriptionHtml ?? null,
-    description_snippet: charSnippet(j.descriptionText, 300),
-  }));
+  const items = jobs.map((j) => {
+    const st = sourceType(j.source);
+    const hasSalary = j.salaryMin != null || j.salaryMax != null;
+    return {
+      id: j.id,
+      title: j.title,
+      company: j.companyName,
+      location: locationLabel({ city: j.city, countryCode: j.countryCode }),
+      // Structured location so the commute gate / mapping is enforceable.
+      location_structured: {
+        city: j.city,
+        region: j.region,
+        country: countryName(j.countryCode),
+        country_code: j.countryCode,
+        lat: j.lat,
+        lng: j.lng,
+      },
+      distance_from_cv1_mi: distanceFromCv1Mi(j.lat, j.lng),
+      country: countryName(j.countryCode),
+      remote: j.workMode === "remote",
+      // The toplisters post page — always present.
+      url: `${SITE_URL}/job/${j.id}/${slugify(j.title)}`,
+      // The apply link as ingested (the wrapper for aggregator sources).
+      apply_url: j.applyUrl ?? null,
+      // The DIRECT employer/source apply link — present for direct sources
+      // (ATS, Recruitment Revolution, open feeds); null for aggregator
+      // wrappers (their APIs don't return the employer URL).
+      apply_url_direct: st === "direct" ? (j.applyUrl ?? null) : null,
+      source: j.source,
+      source_type: st,
+      posted_at: j.postedDate ? j.postedDate.toISOString() : null,
+      // Structured salary {min,max,currency,period} + a human display string.
+      salary: hasSalary
+        ? {
+            min: j.salaryMin,
+            max: j.salaryMax,
+            currency: j.salaryCurrency,
+            period: j.salaryPeriod,
+          }
+        : null,
+      salary_display: salaryRangeText(j),
+      // Full post body (text + HTML) so the consumer can extract deeper links.
+      description: j.descriptionText ?? null,
+      description_html: j.descriptionHtml ?? null,
+      description_snippet: charSnippet(j.descriptionText, 300),
+    };
+  });
 
   return NextResponse.json(
     {

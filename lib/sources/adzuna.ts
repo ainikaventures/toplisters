@@ -99,6 +99,22 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/**
+ * Adzuna's API exposes salary figures but no period, and previously we
+ * hard-coded "yearly" — which mislabeled genuinely hourly postings (e.g. a
+ * £14/hr role shown as £14/yr). No real annual salary lands below ~£200, so
+ * a value under that threshold is an hourly rate; everything else is annual.
+ * Conservative on purpose: we'd rather leave a mid-range figure as yearly
+ * than guess weekly/monthly and be wrong.
+ */
+function inferSalaryPeriod(
+  min: number | undefined,
+  max: number | undefined,
+): $Enums.SalaryPeriod {
+  const v = max ?? min ?? 0;
+  return v > 0 && v < 200 ? "hourly" : "yearly";
+}
+
 function configuredCountries(): string[] {
   const raw = process.env.ADZUNA_COUNTRIES?.trim();
   if (!raw) return [...DEFAULT_COUNTRIES];
@@ -281,7 +297,7 @@ class AdzunaSource implements JobSource {
         salaryMin: hasSalary && item.salary_min ? Math.round(item.salary_min) : null,
         salaryMax: hasSalary && item.salary_max ? Math.round(item.salary_max) : null,
         salaryCurrency: hasSalary ? currency : null,
-        salaryPeriod: hasSalary ? "yearly" : null,
+        salaryPeriod: hasSalary ? inferSalaryPeriod(item.salary_min, item.salary_max) : null,
         jobType: pickJobType(item.contract_type, item.contract_time),
         workMode: "unknown",
         experienceLevel: "unknown",

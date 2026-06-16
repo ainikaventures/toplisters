@@ -81,6 +81,8 @@ revoke with `npm run apikey -- revoke <prefix>`). Missing/invalid → `401`.
 | `country` | Country name or ISO-2 (`United Kingdom`, `GB`) |
 | `remote` | `true` \| `false` |
 | `posted_after` | ISO-8601 date/datetime — jobs posted on/after (for incremental scans) |
+| `max_distance_mi` | Only jobs within N miles of CV1 (Coventry) — server-side commute gate |
+| `source_type` | `direct` (employer/ATS apply link) \| `aggregator` (provider wrapper) |
 | `page` | 1-based page (default 1) |
 | `per_page` | default 100, max 200 |
 
@@ -89,11 +91,20 @@ revoke with `npm run apikey -- revoke <prefix>`). Missing/invalid → `401`.
 response carries `X-RateLimit-Limit` / `X-RateLimit-Remaining` /
 `X-RateLimit-Reset` (default 600 req/min/key, override `JOBS_API_RATE_LIMIT`).
 
-Each job: `id`, `title`, `company`, `location`, `country`, `remote`, `url`
-(the toplisters post page — always present), `apply_url` (the original/
-external apply link, from the normalised field), `source`, `posted_at`,
-`salary` (or null), `description`, `description_html`, `description_snippet`,
-plus top-level `next_cursor` (null — pagination is page-based).
+Each job: `id`, `title`, `company`, `location` (string), `location_structured`
+(`{city, region, country, country_code, lat, lng}`), `distance_from_cv1_mi`
+(number or null), `country`, `remote`, `url` (the toplisters post page —
+always present), `apply_url` (as ingested — the wrapper for aggregator
+sources), `apply_url_direct` (the direct employer/source link — present for
+`source_type: "direct"`, null for aggregator wrappers), `source`,
+`source_type` (`direct` | `aggregator`), `posted_at`, `salary`
+(`{min, max, currency, period}` or null), `salary_display` (string),
+`description`, `description_html`, `description_snippet`. Top-level
+`next_cursor` is null (pagination is page-based).
+
+> Direct apply links: aggregator APIs (Adzuna/Reed/Jooble/Findwork/The Muse)
+> return only their own wrapper, so `apply_url_direct` is null for those.
+> Filter with `source_type=direct` to get only employer/ATS-applicable rows.
 
 **Examples:**
 
