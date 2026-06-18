@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { $Enums } from "@/lib/generated/prisma/client";
 import { fetchJobs, fetchFacets, PAGE_SIZE, type JobFilters } from "./_data/query";
-import { JobCard } from "./_components/JobCard";
+import { JobListItem } from "@/app/_components/JobListItem";
 import { JobsFilters } from "./_components/JobsFilters";
 import { Pagination } from "./_components/Pagination";
 import { AdSlot } from "@/components/ads/AdSlot";
@@ -132,10 +132,10 @@ export default async function JobsPage({
             <EmptyState hasFilters={hasAnyFilter(filters)} />
           ) : (
             <>
-              <ul className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {jobs.map((job) => (
-                  <li key={job.id}>
-                    <JobCard job={job} />
+                  <li key={job.id} className="min-w-0">
+                    <JobListItem job={job} />
                   </li>
                 ))}
               </ul>

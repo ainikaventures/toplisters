@@ -12,13 +12,13 @@ import {
 import { slugify } from "@/lib/slug";
 
 /**
- * Text-rich, always-visible job row for the landing page.
+ * Text-rich, always-visible job row — the standard listing card across the
+ * home page, /jobs, country/city pages and "Similar roles".
  *
- * Unlike the logo-first JobCard used on /jobs (spec line 143, detail hidden
- * behind hover), this surfaces the title, company, location, work mode, type,
- * salary and posted date as crawlable text — better for SEO and for a visitor
- * scanning the latest roles on the home page. Rendered as a semantic <article>
- * with a single <h3> title link and a <time> for the posting date.
+ * It surfaces the title, company, location, work mode, type, salary and
+ * posted date as crawlable text (better for SEO and scanning) rather than the
+ * old logo-first hover-reveal card. Rendered as a semantic <article> with a
+ * single <h3> title link and a <time> for the posting date.
  */
 export function JobListItem({ job }: { job: Job }) {
   const href = `/job/${job.id}/${slugify(job.title)}`;
@@ -32,7 +32,7 @@ export function JobListItem({ job }: { job: Job }) {
   const tags = [workMode, jobType, salary].filter(Boolean) as string[];
 
   return (
-    <article className="group relative flex gap-4 rounded-xl border border-foreground/10 bg-background p-4 transition-colors hover:border-foreground/30">
+    <article className="group relative flex min-w-0 gap-4 rounded-xl border border-foreground/10 bg-background p-4 transition-colors hover:border-foreground/30">
       <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-foreground/10 bg-muted">
         {job.companyLogoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -66,7 +66,7 @@ export function JobListItem({ job }: { job: Job }) {
         </p>
 
         {summary ? (
-          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-foreground/60">
+          <p className="mt-2 line-clamp-3 break-words text-sm leading-relaxed text-foreground/60">
             {summary}
           </p>
         ) : null}
