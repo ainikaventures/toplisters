@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { countryToSlug, resolveCountrySlug } from "@/lib/locations";
 import { countryName } from "@/lib/format";
-import { JobCard } from "../_components/JobCard";
+import { JobListItem } from "@/app/_components/JobListItem";
 import { fetchCountryPageData } from "./_data/country";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
@@ -156,10 +156,10 @@ export default async function CountryPage({
               </Link>
             ) : null}
           </div>
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {data.jobs.map((job) => (
-              <li key={job.id}>
-                <JobCard job={job} />
+              <li key={job.id} className="min-w-0">
+                <JobListItem job={job} />
               </li>
             ))}
           </ul>
