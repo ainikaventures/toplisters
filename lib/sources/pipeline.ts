@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { geocode } from "@/lib/geocoding/lookup";
 import { resolveCompanyLogo } from "@/lib/logos";
 import { classifyCollar } from "@/lib/classify/collar";
+import { classifyCategory } from "@/lib/classify/category";
 import { computeDedupeHash } from "./utils";
 import type { JobSource, NormalizedJob } from "./types";
 
@@ -84,6 +85,10 @@ async function processJob(
     hint: job.collarType,
   });
 
+  // Normalise the free-text source category onto our canonical taxonomy so
+  // the analytics/category facets don't fragment into a big "Other" bucket.
+  const category = classifyCategory({ title: job.title, category: job.category });
+
   const dedupeHash = computeDedupeHash(
     job.title,
     job.companyName,
@@ -125,6 +130,7 @@ async function processJob(
         skills: job.skills,
         benefits: job.benefits,
         collarType,
+        category,
         countryCode: geo.countryCode ?? UNKNOWN_COUNTRY,
         region: geo.region,
         city: geo.city,
@@ -143,6 +149,7 @@ async function processJob(
     create: {
       ...job,
       collarType,
+      category,
       companyLogoUrl,
       countryCode: geo.countryCode ?? UNKNOWN_COUNTRY,
       region: geo.region,
@@ -169,6 +176,7 @@ async function processJob(
       skills: job.skills,
       benefits: job.benefits,
       collarType,
+      category,
       countryCode: geo.countryCode ?? UNKNOWN_COUNTRY,
       region: geo.region,
       city: geo.city,

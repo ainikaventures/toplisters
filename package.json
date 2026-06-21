@@ -15,6 +15,7 @@
     "worker": "tsx scripts/worker.ts",
     "enqueue": "tsx scripts/enqueue.ts",
     "reclassify-collar": "tsx scripts/reclassify-collar.ts",
+    "reclassify-category": "tsx scripts/reclassify-category.ts",
     "deactivate-appcast": "tsx scripts/deactivate-appcast.ts",
     "send-digests": "tsx scripts/send-digests.ts",
     "post-to-social": "tsx scripts/post-to-social.ts",
