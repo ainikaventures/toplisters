@@ -18,7 +18,7 @@ const ENRICH_CONCURRENCY = 4;
 // Override with `ADZUNA_COUNTRIES="gb,us,de,in"` (lowercase, comma-sep).
 const DEFAULT_COUNTRIES = [
   "gb", "us", "au", "ca",
-  "de", "fr", "it", "nl", "pl", "ch", "at", "be",
+  "de", "fr", "it", "es", "nl", "pl", "ch", "at", "be",
   "in", "sg", "br", "mx", "nz", "za",
 ] as const;
 
@@ -60,7 +60,7 @@ interface FetchPayload {
 // /jobs/{country} path. Map covers every country in DEFAULT_COUNTRIES.
 const COUNTRY_CURRENCY: Record<string, string> = {
   gb: "GBP", us: "USD", au: "AUD", ca: "CAD",
-  de: "EUR", fr: "EUR", it: "EUR", nl: "EUR", pl: "PLN", ch: "CHF", at: "EUR", be: "EUR",
+  de: "EUR", fr: "EUR", it: "EUR", es: "EUR", nl: "EUR", pl: "PLN", ch: "CHF", at: "EUR", be: "EUR",
   in: "INR", sg: "SGD", br: "BRL", mx: "MXN", nz: "NZD", za: "ZAR",
 };
 

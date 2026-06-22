@@ -17,6 +17,7 @@ import {
   salaryRangeText,
   charSnippet,
 } from "@/lib/format";
+import { visaSponsorLabel } from "@/lib/classify/visa";
 import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -176,6 +177,17 @@ export async function GET(request: Request): Promise<NextResponse> {
     else return err(400, "source_type must be 'direct' or 'aggregator'", headers);
   }
 
+  // Visa sponsorship filter: offered | not_offered | unknown.
+  let visaFilter: "offered" | "not_offered" | "unknown" | null = null;
+  const visaRaw = sp.get("visa_sponsor");
+  if (visaRaw !== null) {
+    if (visaRaw === "offered" || visaRaw === "not_offered" || visaRaw === "unknown") {
+      visaFilter = visaRaw;
+    } else {
+      return err(400, "visa_sponsor must be offered|not_offered|unknown", headers);
+    }
+  }
+
   const page = Math.max(1, Number.parseInt(sp.get("page") ?? "1", 10) || 1);
   const perPageRaw = Number.parseInt(sp.get("per_page") ?? "", 10);
   const perPage = Math.min(
@@ -205,6 +217,9 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (postedAfter) cond.push(Prisma.sql`posted_date >= ${postedAfter}`);
   if (sourceTypeFilter === "direct") cond.push(Prisma.sql`source <> ALL(${AGGREGATOR_SOURCES})`);
   if (sourceTypeFilter === "aggregator") cond.push(Prisma.sql`source = ANY(${AGGREGATOR_SOURCES})`);
+  if (visaFilter === "offered") cond.push(Prisma.sql`visa_sponsorship = true`);
+  if (visaFilter === "not_offered") cond.push(Prisma.sql`visa_sponsorship = false`);
+  if (visaFilter === "unknown") cond.push(Prisma.sql`visa_sponsorship IS NULL`);
   if (near && radiusMi != null) {
     // Haversine in SQL (no PostGIS dependency). Exclude ungeocoded/null-island rows.
     cond.push(Prisma.sql`(lat <> 0 OR lng <> 0)`);
@@ -275,6 +290,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       apply_url_direct: st === "direct" ? (j.applyUrl ?? null) : null,
       source: j.source,
       source_type: st,
+      visa_sponsor: visaSponsorLabel(j.visaSponsorship),
       posted_at: j.postedDate ? j.postedDate.toISOString() : null,
       // Structured salary {min,max,currency,period} + a human display string.
       salary: hasSalary

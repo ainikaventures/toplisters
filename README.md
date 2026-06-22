@@ -88,6 +88,7 @@ revoke with `npm run apikey -- revoke <prefix>`). Missing/invalid → `401`.
 | `near` + `radius_mi` | Geo gate: `near=lat,lng` (e.g. `52.4068,-1.5197`) + radius in miles. Candidate-agnostic — no baked-in origin |
 | `salary_min` + `salary_period` | Salary floor (integer) + optional period (`hourly`\|`daily`\|`monthly`\|`yearly`). Floor excludes unknown-salary rows |
 | `source_type` | `direct` (employer/ATS apply link) \| `aggregator` (provider wrapper) |
+| `visa_sponsor` | `offered` \| `not_offered` \| `unknown` — parsed from the description |
 | `since` (alias `posted_after`) | ISO-8601 date/datetime — jobs posted on/after (for incremental scans) |
 | `page` | 1-based page (default 1) |
 | `per_page` | default 100, max 200 |
@@ -104,7 +105,8 @@ the `near` origin, or null when `near` not given), `country`, `remote`, `url`
 always present), `apply_url` (as ingested — the wrapper for aggregator
 sources), `apply_url_direct` (the direct employer/source link — present for
 `source_type: "direct"`, null for aggregator wrappers), `source`,
-`source_type` (`direct` | `aggregator`), `posted_at`, `salary`
+`source_type` (`direct` | `aggregator`), `visa_sponsor`
+(`offered` | `not_offered` | `unknown`), `posted_at`, `salary`
 (`{min, max, currency, period}` or null), `salary_display` (string),
 `description`, `description_html`, `description_snippet`. Top-level
 `next_cursor` is null (pagination is page-based).
