@@ -162,6 +162,7 @@ LLM key. All vars optional — the AI roadmap degrades gracefully when unset.
 | `SPORTS_AI_API_KEY` | Generic key override; else the provider's own var below. |
 | `NVIDIA_KEY` / `GROQ_API_KEY` / `GEMINI_API_KEY` | Provider key (server-only). NVIDIA NIM is the free default. |
 | `SPORTS_AI_MODEL`, `SPORTS_AI_BASE_URL` | Optional model / endpoint overrides. |
+| `FOOTBALL_DATA_API_KEY` | World Cup live group standings (football-data.org free token). Blank ⇒ Elo projection. F1 needs no key (Jolpica). |
 | `NEXT_PUBLIC_SPORTS_URL` | Sports origin for cross-vertical header links. **Build arg** (§6). |
 
 **Operator step (DNS + Coolify):** add the domain `sports.toplisters.xyz` to

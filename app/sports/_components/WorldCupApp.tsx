@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { worldCupEngine, groupTables, type WcData } from "@/lib/sports/worldcup/engine";
+import { useMemo, useState } from "react";
+import { worldCupEngine, groupTables, buildWcData } from "@/lib/sports/worldcup/engine";
 import type { WcTeam } from "@/lib/sports/worldcup/teams";
 import type { AnalysisResult } from "@/lib/sports/types";
 import { ResultPanel } from "./ResultPanel";
@@ -37,9 +37,9 @@ interface StatRow {
   third: boolean;
 }
 
-/** Real group table when live stats exist, else null (use the projection). */
+/** Real group table once games are played, else null (use the projection). */
 function statRows(teams: WcTeam[]): StatRow[] | null {
-  if (!teams.some((t) => t.played != null)) return null;
+  if (!teams.some((t) => (t.played ?? 0) > 0)) return null;
   return teams
     .map((team) => {
       const w = team.won ?? 0;
@@ -67,21 +67,16 @@ function dot(qualifies: boolean, third: boolean) {
   return qualifies ? "bg-emerald-500" : third ? "bg-amber-400" : "bg-foreground/20";
 }
 
-export function WorldCupApp() {
-  const [data, setData] = useState<WcData | null>(null);
+export function WorldCupApp({ teams: allTeams }: { teams: WcTeam[] }) {
   const [group, setGroup] = useState("A");
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [analysing, setAnalysing] = useState(false);
 
-  useEffect(() => {
-    worldCupEngine.load().then(setData);
-  }, []);
-
-  const tables = useMemo(() => (data ? groupTables(data) : null), [data]);
+  const data = useMemo(() => buildWcData(allTeams), [allTeams]);
+  const tables = useMemo(() => groupTables(data), [data]);
 
   function pick(code: string) {
-    if (!data) return;
     setPickedId(code);
     setResult(null);
     setAnalysing(true);
@@ -89,14 +84,6 @@ export function WorldCupApp() {
       setResult(worldCupEngine.analyse(data, code));
       setAnalysing(false);
     }, 20);
-  }
-
-  if (!data || !tables) {
-    return (
-      <div className="rounded-xl border border-foreground/10 p-6 text-sm text-foreground/50">
-        Loading groups…
-      </div>
-    );
   }
 
   const teams = data.groups[group] ?? [];
