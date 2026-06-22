@@ -18,10 +18,18 @@ const DEFAULT_LOCATIONS: readonly { label: string; iso2: string }[] = [
   { label: "France", iso2: "FR" },
   { label: "India", iso2: "IN" },
   { label: "Poland", iso2: "PL" },
-  { label: "Russia", iso2: "RU" },
   { label: "Spain", iso2: "ES" },
   { label: "Italy", iso2: "IT" },
   { label: "Netherlands", iso2: "NL" },
+  // Gulf — Adzuna has no coverage here and the regional boards (Bayt /
+  // GulfTalent / NaukriGulf) prohibit scraping + actively block bots, so we
+  // reach the Gulf through Jooble's official API instead.
+  { label: "United Arab Emirates", iso2: "AE" },
+  { label: "Saudi Arabia", iso2: "SA" },
+  { label: "Qatar", iso2: "QA" },
+  { label: "Kuwait", iso2: "KW" },
+  { label: "Oman", iso2: "OM" },
+  { label: "Bahrain", iso2: "BH" },
 ];
 
 interface JoobleItem {
@@ -101,8 +109,8 @@ function sleep(ms: number): Promise<void> {
  *
  * Per-country budget at the 90-min cadence already in scheduler.ts
  * (jooble: 90):
- *   10 countries × 1 page × 50 results = 10 calls/run × 16 runs/day
- *   ≈ 160 calls/day — well under typical free-tier limits.
+ *   15 countries × 1 page × 50 results = 15 calls/run × 16 runs/day
+ *   ≈ 240 calls/day — well under typical free-tier limits.
  *
  * Quirks:
  *  - POST endpoint with API key in the URL path: POST /api/<key>
