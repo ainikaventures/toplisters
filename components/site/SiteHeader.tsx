@@ -4,42 +4,59 @@ import Link from "next/link";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
-const NAV: { href: string; label: string }[] = [
+type NavItem = { href: string; label: string; external?: boolean };
+
+// Cross-vertical homes. Absolute in prod (subdomains), relative fallback in dev.
+const SPORTS_HOME = process.env.NEXT_PUBLIC_SPORTS_URL || "/sports";
+const JOBS_HOME = process.env.NEXT_PUBLIC_SITE_URL || "/";
+
+const JOBS_NAV: NavItem[] = [
   { href: "/jobs", label: "Browse" },
   { href: "/globe", label: "Globe" },
   { href: "/jobs/locations", label: "Locations" },
   { href: "/analytics", label: "Analytics" },
   { href: "/post-a-job", label: "Post a job" },
+  { href: SPORTS_HOME, label: "Sports", external: SPORTS_HOME.startsWith("http") },
+];
+
+// Sports vertical serves from the subdomain root, so links are root-relative.
+const SPORTS_NAV: NavItem[] = [
+  { href: "/f1", label: "Formula 1" },
+  { href: "/world-cup", label: "World Cup" },
+  { href: JOBS_HOME, label: "Jobs", external: JOBS_HOME.startsWith("http") },
 ];
 
 /**
- * Shared chrome for /jobs/* and /job/* routes. On sm+ the four nav links
- * sit inline next to the brand. On narrow screens we collapse to a
- * hamburger button that toggles a dropdown panel — useful state that's
- * only client-state, no router involvement, so no Suspense gymnastics.
- *
- * The toggle button shrinks to icon-only on the smallest screens to leave
- * room for the brand + hamburger.
+ * Shared chrome across verticals. `variant` swaps the nav + brand target so
+ * the same shell serves jobs (default) and sports — the markup, styling, and
+ * theme toggle stay identical (do NOT fork this component per vertical).
  */
-export function SiteHeader() {
+export function SiteHeader({ variant = "jobs" }: { variant?: "jobs" | "sports" }) {
   const [open, setOpen] = useState(false);
+  const isSports = variant === "sports";
+  const nav = isSports ? SPORTS_NAV : JOBS_NAV;
+  const brandHref = isSports ? "/" : "/";
+  const brandLabel = isSports ? "Toplisters · Sports" : "Toplisters";
+
+  const linkProps = (item: NavItem) =>
+    item.external ? { href: item.href } : { href: item.href };
 
   return (
     <header className="sticky top-0 z-30 border-b border-foreground/10 bg-background/85 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Link
-          href="/"
+          href={brandHref}
           className="text-sm font-semibold tracking-tight hover:underline-offset-2 hover:underline"
           onClick={() => setOpen(false)}
         >
-          Toplisters
+          {brandLabel}
         </Link>
 
         <nav className="hidden items-center gap-5 sm:flex">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <Link
-              key={item.href}
-              href={item.href}
+              key={item.href + item.label}
+              {...linkProps(item)}
               className="text-xs text-foreground/60 hover:text-foreground"
             >
               {item.label}
@@ -66,10 +83,10 @@ export function SiteHeader() {
       {open ? (
         <nav className="border-t border-foreground/10 bg-background sm:hidden">
           <ul className="mx-auto flex max-w-7xl flex-col px-4 py-2">
-            {NAV.map((item) => (
-              <li key={item.href}>
+            {nav.map((item) => (
+              <li key={item.href + item.label}>
                 <Link
-                  href={item.href}
+                  {...linkProps(item)}
                   onClick={() => setOpen(false)}
                   className="block rounded-md px-2 py-2 text-sm hover:bg-muted"
                 >
