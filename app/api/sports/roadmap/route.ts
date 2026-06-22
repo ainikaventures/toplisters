@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { AnalysisResult } from "@/lib/sports/types";
+import { resolveAiProvider, type AiProvider } from "@/lib/ai/provider";
 
 /**
  * AI roadmap proxy — the headline feature's server piece. Takes a computed
@@ -23,55 +24,6 @@ interface RoadmapBody {
   sport: string;
   targetName: string;
   analysis: AnalysisResult;
-}
-
-interface ProviderConfig {
-  url: string;
-  model: string;
-  key: string | undefined;
-  /** gemini has a different request/response shape; ollama is keyless. */
-  kind: "openai" | "gemini" | "ollama";
-}
-
-function resolveProvider(): ProviderConfig {
-  const provider = (process.env.SPORTS_AI_PROVIDER ?? "nvidia").toLowerCase();
-  const override = process.env.SPORTS_AI_API_KEY;
-  const model = process.env.SPORTS_AI_MODEL;
-  const base = process.env.SPORTS_AI_BASE_URL;
-
-  switch (provider) {
-    case "groq":
-      return {
-        kind: "openai",
-        url: base ?? "https://api.groq.com/openai/v1/chat/completions",
-        model: model ?? "llama-3.3-70b-versatile",
-        key: override ?? process.env.GROQ_API_KEY,
-      };
-    case "gemini":
-      return {
-        kind: "gemini",
-        url:
-          base ??
-          `https://generativelanguage.googleapis.com/v1beta/models/${model ?? "gemini-2.0-flash"}:generateContent`,
-        model: model ?? "gemini-2.0-flash",
-        key: override ?? process.env.GEMINI_API_KEY,
-      };
-    case "ollama":
-      return {
-        kind: "ollama",
-        url: base ?? "http://localhost:11434/api/chat",
-        model: model ?? "llama3.1",
-        key: "local",
-      };
-    case "nvidia":
-    default:
-      return {
-        kind: "openai",
-        url: base ?? "https://integrate.api.nvidia.com/v1/chat/completions",
-        model: model ?? "meta/llama-3.3-70b-instruct",
-        key: override ?? process.env.NVIDIA_KEY,
-      };
-  }
 }
 
 const SYSTEM_PROMPT =
@@ -126,7 +78,7 @@ function parseModelJson(text: string): { roadmap: string[]; pundit: string } | n
   }
 }
 
-async function callProvider(cfg: ProviderConfig, body: RoadmapBody): Promise<string> {
+async function callProvider(cfg: AiProvider, body: RoadmapBody): Promise<string> {
   const user = buildUserPrompt(body);
 
   if (cfg.kind === "gemini") {
@@ -197,7 +149,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Missing analysis/targetName" }, { status: 400 });
   }
 
-  const cfg = resolveProvider();
+  const cfg = resolveAiProvider();
   if (!cfg.key) {
     // No key configured — degrade gracefully; the UI keeps the maths + odds.
     return NextResponse.json(

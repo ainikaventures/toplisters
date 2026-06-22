@@ -12,6 +12,7 @@ const JOBS_HOME = process.env.NEXT_PUBLIC_SITE_URL || "/";
 
 const JOBS_NAV: NavItem[] = [
   { href: "/jobs", label: "Browse" },
+  { href: "/jobs/chat", label: "AI Search" },
   { href: "/globe", label: "Globe" },
   { href: "/jobs/locations", label: "Locations" },
   { href: "/analytics", label: "Analytics" },
