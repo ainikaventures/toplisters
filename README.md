@@ -51,6 +51,8 @@ budget + API notes at [`info/BUDGET_AND_APIS.md`](info/BUDGET_AND_APIS.md).
 | `/api/geoip` | Cookie-cached ipapi.co wrapper |
 | `/api/v1/jobs` | Read-only JSON search API (API-key auth) — see below |
 | `/api/ats-jobs` | Public ATS-only discovery index (compliance-scoped) |
+| `/jobs/chat` | Conversational AI job search (LLM + live-listing tool) |
+| `/api/jobs/chat` | POST → chat endpoint; the LLM calls a `search_jobs` tool |
 | `/sports`, `/sports/f1`, `/sports/world-cup` | Sports vertical (`sports.toplisters.xyz`) — see below |
 | `/api/sports/roadmap` | POST → AI win-path roadmap (LLM key hidden server-side) |
 
