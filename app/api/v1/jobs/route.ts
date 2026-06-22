@@ -16,8 +16,10 @@ import {
   countryName,
   salaryRangeText,
   charSnippet,
+  normalizedSalaryUsd,
 } from "@/lib/format";
 import { visaSponsorLabel } from "@/lib/classify/visa";
+import { detectFitFlags } from "@/lib/classify/fitflags";
 import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -302,6 +304,10 @@ export async function GET(request: Request): Promise<NextResponse> {
           }
         : null,
       salary_display: salaryRangeText(j),
+      // Salary normalised to annual USD for cross-country comparison (rough).
+      salary_normalized: normalizedSalaryUsd(j),
+      // Hard-constraint flags parsed from the description.
+      fit_flags: detectFitFlags(j.descriptionText),
       // Full post body (text + HTML) so the consumer can extract deeper links.
       description: j.descriptionText ?? null,
       description_html: j.descriptionHtml ?? null,
