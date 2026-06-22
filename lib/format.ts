@@ -145,6 +145,37 @@ export function excerpt(
   return words.slice(0, maxWords).join(" ") + "…";
 }
 
+// Approximate FX rates to USD (review periodically; this is for rough
+// cross-country comparability, not financial accuracy).
+const FX_TO_USD: Record<string, number> = {
+  USD: 1, GBP: 1.27, EUR: 1.08, INR: 0.012, AUD: 0.66, CAD: 0.73, SGD: 0.74,
+  CHF: 1.12, PLN: 0.25, BRL: 0.18, MXN: 0.058, ZAR: 0.054, NZD: 0.6, JPY: 0.0064,
+  CNY: 0.14, AED: 0.27, SAR: 0.27, QAR: 0.27, KWD: 3.25, OMR: 2.6, BHD: 2.65,
+};
+const PERIOD_TO_YEAR: Record<string, number> = {
+  hourly: 2080, daily: 260, weekly: 52, monthly: 12, yearly: 1,
+};
+
+/**
+ * Salary normalised to annual USD for cross-country comparison/sorting.
+ * Annualises the period then converts the currency; null when no salary or an
+ * unknown currency. Rough by design (static FX) — for comparability, not pay.
+ */
+export function normalizedSalaryUsd(args: {
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryCurrency: string | null;
+  salaryPeriod: string | null;
+}): { min: number | null; max: number | null; currency: "USD"; period: "yearly" } | null {
+  const { salaryMin, salaryMax, salaryCurrency, salaryPeriod } = args;
+  if (salaryMin == null && salaryMax == null) return null;
+  const rate = FX_TO_USD[(salaryCurrency ?? "USD").toUpperCase()];
+  if (!rate) return null;
+  const mult = PERIOD_TO_YEAR[(salaryPeriod ?? "yearly").toLowerCase()] ?? 1;
+  const conv = (n: number | null) => (n == null ? null : Math.round(n * mult * rate));
+  return { min: conv(salaryMin), max: conv(salaryMax), currency: "USD", period: "yearly" };
+}
+
 /** Char-bounded snippet (cut on a word boundary). For API payloads. */
 export function charSnippet(
   text: string | null | undefined,

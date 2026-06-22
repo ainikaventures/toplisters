@@ -106,7 +106,10 @@ always present), `apply_url` (as ingested — the wrapper for aggregator
 sources), `apply_url_direct` (the direct employer/source link — present for
 `source_type: "direct"`, null for aggregator wrappers), `source`,
 `source_type` (`direct` | `aggregator`), `visa_sponsor`
-(`offered` | `not_offered` | `unknown`), `posted_at`, `salary`
+(`offered` | `not_offered` | `unknown`), `fit_flags[]`
+(`relocation_required` | `language_gated` | `clearance_required`),
+`salary_normalized` (`{min,max,currency:"USD",period:"yearly"}` or null),
+`posted_at`, `salary`
 (`{min, max, currency, period}` or null), `salary_display` (string),
 `description`, `description_html`, `description_snippet`. Top-level
 `next_cursor` is null (pagination is page-based).
