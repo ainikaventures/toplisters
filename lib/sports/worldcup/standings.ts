@@ -7,7 +7,7 @@ import type { WcTeam } from "./teams";
  * Overlays real points / played / W-D-L / goals onto the curated Elo dataset;
  * falls back to the Elo projection when the key/feed is unavailable.
  *
- *   FOOTBALL_DATA_API_KEY = free token from football-data.org/client/register
+ *   FOOTBALL_DATA_ORG = free token from football-data.org/client/register
  */
 
 const ENDPOINT = "https://api.football-data.org/v4/competitions/WC/standings";
@@ -44,7 +44,7 @@ function norm(s: string): string {
 
 /** Fetch live standings keyed by team code/name. null when unavailable. */
 export async function fetchWcStandings(): Promise<Map<string, TeamStats> | null> {
-  const key = process.env.FOOTBALL_DATA_API_KEY?.trim();
+  const key = (process.env.FOOTBALL_DATA_ORG ?? process.env.FOOTBALL_DATA_API_KEY)?.trim();
   if (!key) return null;
   try {
     const res = await fetch(ENDPOINT, {
