@@ -27,6 +27,13 @@ export interface WcData {
   groups: Record<string, WcTeam[]>;
 }
 
+/** Group the (possibly live-overlaid) teams into the WcData the engine uses. */
+export function buildWcData(teams: WcTeam[]): WcData {
+  const groups: Record<string, WcTeam[]> = {};
+  for (const t of teams) (groups[t.group] ??= []).push(t);
+  return { teams, groups };
+}
+
 export interface GroupRow {
   team: WcTeam;
   points: number;
@@ -103,10 +110,7 @@ export const worldCupEngine: SportEngine<WcData> = {
   sport: "world-cup",
 
   async load(): Promise<WcData> {
-    const teams = WC_TEAMS;
-    const groups: Record<string, WcTeam[]> = {};
-    for (const t of teams) (groups[t.group] ??= []).push(t);
-    return { teams, groups };
+    return buildWcData(WC_TEAMS);
   },
 
   competitors(data: WcData): Competitor[] {
