@@ -41,6 +41,10 @@ export interface F1Driver {
   points: number;
   wins: number;
   position: number;
+  /** Per-race retirement probability, from season results. 0.02–0.40. */
+  dnfRate: number;
+  /** Recency-weighted points-per-race (recent form), 0 when unknown. */
+  recentPpr: number;
 }
 
 export interface F1Data {
@@ -79,6 +83,57 @@ interface ScheduleResponse {
   };
 }
 
+interface ResultsResponse {
+  MRData?: {
+    RaceTable?: {
+      Races?: Array<{
+        round?: string;
+        Results?: Array<{ points?: string; status?: string; Driver?: { driverId?: string } }>;
+      }>;
+    };
+  };
+}
+
+const FORM_DECAY = 0.85; // weight of each race older than the last, for recent form
+
+/** A classified finish (won/lapped) vs a retirement (DNF). */
+function isFinish(status: string | undefined): boolean {
+  return status === "Finished" || /^\+\d+ Lap/.test(status ?? "");
+}
+
+interface DriverForm {
+  dnfRate: number;
+  recentPpr: number;
+}
+
+/** Per-driver reliability + recent form from the season's race results. */
+function computeForm(results: ResultsResponse, lastRound: number): Map<string, DriverForm> {
+  const races = results.MRData?.RaceTable?.Races ?? [];
+  const acc = new Map<string, { entries: number; dnfs: number; wpts: number; wsum: number }>();
+  for (const race of races) {
+    const round = Number.parseInt(race.round ?? "0", 10) || 0;
+    const weight = FORM_DECAY ** Math.max(0, lastRound - round);
+    for (const r of race.Results ?? []) {
+      const id = r.Driver?.driverId;
+      if (!id) continue;
+      const e = acc.get(id) ?? { entries: 0, dnfs: 0, wpts: 0, wsum: 0 };
+      e.entries++;
+      if (!isFinish(r.status)) e.dnfs++;
+      e.wpts += (Number.parseFloat(r.points ?? "0") || 0) * weight;
+      e.wsum += weight;
+      acc.set(id, e);
+    }
+  }
+  const out = new Map<string, DriverForm>();
+  for (const [id, e] of acc) {
+    out.set(id, {
+      dnfRate: Math.min(0.4, Math.max(0.02, e.entries ? e.dnfs / e.entries : 0.1)),
+      recentPpr: e.wsum > 0 ? e.wpts / e.wsum : 0,
+    });
+  }
+  return out;
+}
+
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(`Jolpica ${res.status} for ${url}`);
@@ -91,36 +146,59 @@ function gumbel(): number {
   return -Math.log(-Math.log(u + 1e-12) + 1e-12);
 }
 
-/** Draw a finishing order over driver indices via Plackett–Luce + Gumbel. */
-function drawOrder(strength: number[]): number[] {
-  return strength
-    .map((s, i) => ({ i, key: s / NOISE_SCALE + gumbel() }))
-    .sort((a, b) => b.key - a.key)
-    .map((x) => x.i);
+/**
+ * Simulate one race/sprint into `totals`: each driver retires with their DNF
+ * probability (scaled for sprints), the finishers are ordered by Plackett–Luce
+ * (strength + Gumbel), and points are awarded by finishing position. Retired
+ * drivers score nothing — the reliability lever the old model lacked.
+ */
+function scoreSession(
+  totals: number[],
+  strength: number[],
+  dnf: number[],
+  dnfScale: number,
+  points: (pos: number) => number,
+): void {
+  const ordered: { i: number; key: number }[] = [];
+  for (let i = 0; i < strength.length; i++) {
+    if (Math.random() > dnf[i] * dnfScale) ordered.push({ i, key: strength[i] / NOISE_SCALE + gumbel() });
+  }
+  ordered.sort((a, b) => b.key - a.key);
+  for (let pos = 0; pos < ordered.length; pos++) totals[ordered[pos].i] += points(pos + 1);
 }
 
 export const f1Engine: SportEngine<F1Data> = {
   sport: "f1",
 
   async load(): Promise<F1Data> {
-    const [standings, schedule] = await Promise.all([
+    const [standings, schedule, results] = await Promise.all([
       getJson<StandingsResponse>(`${BASE}/current/driverstandings/?limit=100`),
       getJson<ScheduleResponse>(`${BASE}/current/?limit=100`),
+      // Every race result this season → per-driver reliability + recent form.
+      // Tolerate failure: the model falls back to season pace + a default DNF.
+      getJson<ResultsResponse>(`${BASE}/current/results/?limit=2000`).catch(() => ({}) as ResultsResponse),
     ]);
 
     const list = standings.MRData?.StandingsTable?.StandingsLists?.[0];
     const season = list?.season ?? new Date().getUTCFullYear().toString();
     const lastRound = Number.parseInt(list?.round ?? "0", 10) || 0;
+    const form = computeForm(results, lastRound);
 
-    const drivers: F1Driver[] = (list?.DriverStandings ?? []).map((d) => ({
-      id: d.Driver?.driverId ?? `${d.Driver?.familyName ?? "driver"}`.toLowerCase(),
-      name: `${d.Driver?.givenName ?? ""} ${d.Driver?.familyName ?? ""}`.trim(),
-      code: d.Driver?.code ?? (d.Driver?.familyName ?? "").slice(0, 3).toUpperCase(),
-      constructor: d.Constructors?.[0]?.name ?? "—",
-      points: Number.parseFloat(d.points ?? "0") || 0,
-      wins: Number.parseInt(d.wins ?? "0", 10) || 0,
-      position: Number.parseInt(d.position ?? "0", 10) || 0,
-    }));
+    const drivers: F1Driver[] = (list?.DriverStandings ?? []).map((d) => {
+      const id = d.Driver?.driverId ?? `${d.Driver?.familyName ?? "driver"}`.toLowerCase();
+      const f = form.get(id);
+      return {
+        id,
+        name: `${d.Driver?.givenName ?? ""} ${d.Driver?.familyName ?? ""}`.trim(),
+        code: d.Driver?.code ?? (d.Driver?.familyName ?? "").slice(0, 3).toUpperCase(),
+        constructor: d.Constructors?.[0]?.name ?? "—",
+        points: Number.parseFloat(d.points ?? "0") || 0,
+        wins: Number.parseInt(d.wins ?? "0", 10) || 0,
+        position: Number.parseInt(d.position ?? "0", 10) || 0,
+        dnfRate: f?.dnfRate ?? 0.1,
+        recentPpr: f?.recentPpr ?? 0,
+      };
+    });
 
     const races = schedule.MRData?.RaceTable?.Races ?? [];
     const remaining = races.filter((r) => (Number.parseInt(r.round ?? "0", 10) || 0) > lastRound);
@@ -280,11 +358,16 @@ function simulate(
   const n = drivers.length;
   if (n === 0) return [];
   const done = Math.max(racesDone, 1);
-  // Strength = points-per-race so far, floored so backmarkers aren't zero,
-  // then shrunk toward the field mean (early-season form is a small sample).
-  const ppr = drivers.map((d) => Math.max(d.points / done, 1));
-  const mean = ppr.reduce((a, b) => a + b, 0) / ppr.length;
-  const strength = ppr.map((s) => Math.max(mean + (s - mean) * FORM_SHRINK, 0.5));
+  // Strength blends season pace with recency-weighted recent form, floored so
+  // backmarkers aren't zero, then shrunk toward the field mean (a season is a
+  // small sample). Reliability (DNF rate) enters as a per-race retirement.
+  const seasonPpr = drivers.map((d) => Math.max(d.points / done, 1));
+  const blended = drivers.map((d, i) =>
+    d.recentPpr > 0 ? 0.55 * Math.max(d.recentPpr, 1) + 0.45 * seasonPpr[i] : seasonPpr[i],
+  );
+  const mean = blended.reduce((a, b) => a + b, 0) / n;
+  const strength = blended.map((s) => Math.max(mean + (s - mean) * FORM_SHRINK, 0.5));
+  const dnf = drivers.map((d) => d.dnfRate);
   const base = drivers.map((d) => d.points);
   const wins = new Array<number>(n).fill(0);
 
@@ -296,14 +379,9 @@ function simulate(
   } else {
     for (let s = 0; s < SIMS; s++) {
       const totals = base.slice();
-      for (let r = 0; r < remainingRaces; r++) {
-        const order = drawOrder(strength);
-        for (let pos = 0; pos < order.length; pos++) totals[order[pos]] += racePoints(pos + 1);
-      }
-      for (let r = 0; r < remainingSprints; r++) {
-        const order = drawOrder(strength);
-        for (let pos = 0; pos < order.length; pos++) totals[order[pos]] += sprintPoints(pos + 1);
-      }
+      for (let r = 0; r < remainingRaces; r++) scoreSession(totals, strength, dnf, 1, racePoints);
+      // Sprints are shorter — roughly half the retirement risk of a Grand Prix.
+      for (let r = 0; r < remainingSprints; r++) scoreSession(totals, strength, dnf, 0.5, sprintPoints);
       let champ = 0;
       for (let i = 1; i < n; i++) if (totals[i] > totals[champ]) champ = i;
       wins[champ]++;
