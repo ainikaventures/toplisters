@@ -19,8 +19,111 @@ import { WC_TEAMS, type WcTeam } from "./teams";
  */
 
 const SIMS = 5000;
-const MAX_DRAW = 0.3; // draw probability when two teams are perfectly even
+const MWP_SIMS = 2500; // sub-sims for a single knockout tie's win probability
+const MAX_DRAW = 0.3; // draw probability when two teams are perfectly even (projection only)
 const ROUND_LABELS = ["Round of 32", "Round of 16", "Quarter-final", "Semi-final", "Final"];
+
+// ─── Poisson goal model ────────────────────────────────────────────────────
+// Each match is simulated as goals ~ Poisson(λ), with λ driven by the Elo gap.
+// This yields real scorelines, so GD/GF tiebreakers and ET/penalties are
+// modelled properly rather than collapsing to a single win/draw/loss roll.
+const BASE_GOALS = 1.35; // ~avg goals per team in an evenly-matched WC game
+const GOAL_ELO_K = 0.9; // how strongly the Elo gap inflates the goal rate
+const ET_SCALE = 1 / 3; // extra time ≈ 30 min of the 90
+const HOST_ELO_BONUS = 60; // home advantage for the 2026 co-hosts
+const HOSTS = new Set(["USA", "CAN", "MEX"]);
+
+function adjElo(t: WcTeam): number {
+  return t.elo + (HOSTS.has(t.code) ? HOST_ELO_BONUS : 0);
+}
+
+function lambdas(a: WcTeam, b: WcTeam): [number, number] {
+  const diff = (adjElo(a) - adjElo(b)) / 400;
+  return [BASE_GOALS * Math.exp(GOAL_ELO_K * diff), BASE_GOALS * Math.exp(-GOAL_ELO_K * diff)];
+}
+
+/** Knuth's Poisson sampler (λ small, as here). */
+function poisson(lambda: number): number {
+  const L = Math.exp(-lambda);
+  let k = 0;
+  let p = 1;
+  do {
+    k++;
+    p *= Math.random();
+  } while (p > L);
+  return k - 1;
+}
+
+/** Winner of a knockout tie: 90' + extra time + penalties. */
+function knockoutWinner(a: WcTeam, b: WcTeam): WcTeam {
+  const [la, lb] = lambdas(a, b);
+  let ga = poisson(la);
+  let gb = poisson(lb);
+  if (ga === gb) {
+    ga += poisson(la * ET_SCALE);
+    gb += poisson(lb * ET_SCALE);
+  }
+  if (ga > gb) return a;
+  if (gb > ga) return b;
+  // Penalties — near coin-flip, slight edge to the stronger side.
+  const edge = Math.min(0.65, Math.max(0.35, 0.5 + (adjElo(a) - adjElo(b)) / 4000));
+  return Math.random() < edge ? a : b;
+}
+
+/** P(A advances past B) in a knockout tie, via a quick sub-Monte-Carlo. */
+function matchWinProb(a: WcTeam, b: WcTeam): number {
+  let w = 0;
+  for (let i = 0; i < MWP_SIMS; i++) if (knockoutWinner(a, b) === a) w++;
+  return w / MWP_SIMS;
+}
+
+interface Standing {
+  team: WcTeam;
+  pts: number;
+  gd: number;
+  gf: number;
+}
+
+/** Simulate (or read, if locked) a group → standings sorted pts→GD→GF→Elo. */
+function simGroup(group: WcTeam[]): Standing[] {
+  const st = new Map<string, Standing>(
+    group.map((t) => [t.code, { team: t, pts: 0, gd: 0, gf: 0 }]),
+  );
+  const allLocked = group.every((t) => typeof t.result === "number");
+  if (allLocked) {
+    for (const t of group) {
+      const s = st.get(t.code)!;
+      s.pts = t.result ?? 0;
+      s.gf = t.gf ?? 0;
+      s.gd = (t.gf ?? 0) - (t.ga ?? 0);
+    }
+  } else {
+    for (let i = 0; i < group.length; i++) {
+      for (let k = i + 1; k < group.length; k++) {
+        const A = group[i];
+        const B = group[k];
+        const [la, lb] = lambdas(A, B);
+        const ga = poisson(la);
+        const gb = poisson(lb);
+        const sa = st.get(A.code)!;
+        const sb = st.get(B.code)!;
+        sa.gf += ga;
+        sa.gd += ga - gb;
+        sb.gf += gb;
+        sb.gd += gb - ga;
+        if (ga > gb) sa.pts += 3;
+        else if (gb > ga) sb.pts += 3;
+        else {
+          sa.pts += 1;
+          sb.pts += 1;
+        }
+      }
+    }
+  }
+  return [...st.values()].sort(
+    (x, y) => y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || adjElo(y.team) - adjElo(x.team),
+  );
+}
 
 export interface WcData {
   teams: WcTeam[];
@@ -59,7 +162,7 @@ function expectedPoints(team: WcTeam, group: WcTeam[]): number {
   let pts = 0;
   for (const opp of group) {
     if (opp.code === team.code) continue;
-    const { w, d } = outcomeProbs(team.elo, opp.elo);
+    const { w, d } = outcomeProbs(adjElo(team), adjElo(opp));
     pts += 3 * w + d;
   }
   return pts;
@@ -68,7 +171,7 @@ function expectedPoints(team: WcTeam, group: WcTeam[]): number {
 function rankGroup(group: WcTeam[]): GroupRow[] {
   return group
     .map((team) => ({ team, points: expectedPoints(team, group) }))
-    .sort((a, b) => b.points - a.points || b.team.elo - a.team.elo)
+    .sort((a, b) => b.points - a.points || adjElo(b.team) - adjElo(a.team))
     .map((row, i) => ({ ...row, qualifies: i < 2, thirdPlace: i === 2 }));
 }
 
@@ -196,7 +299,7 @@ function projectPath(
     const siblings = slots.slice(sibStart, sibStart + blockSize).filter(Boolean);
     if (siblings.length === 0) break;
     const opp = siblings.reduce((a, b) => (b.elo > a.elo ? b : a));
-    const p = expected(target.elo, opp.elo);
+    const p = matchWinProb(target, opp);
     cumulative *= p;
     path.push({
       label: ROUND_LABELS[r],
@@ -235,52 +338,36 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
 }
 
-/** Monte Carlo over full tournaments → title probability per team. */
+/**
+ * Monte Carlo over full tournaments → title probability per team.
+ *
+ * Group stage uses the Poisson goal model (or real standings for completed
+ * groups), ranked by the proper points→GD→GF tiebreakers; knockouts resolve
+ * via 90' + extra time + penalties. Conditioned on live results where the
+ * football-data overlay has locked a group.
+ */
 function simulate(data: WcData): ProbabilityEntry[] {
   const wins = new Map<string, number>();
   for (const t of data.teams) wins.set(t.code, 0);
   const groups = Object.values(data.groups);
 
   for (let s = 0; s < SIMS; s++) {
-    // Group stage → 32 qualifiers.
     const top: WcTeam[] = [];
-    const thirds: { team: WcTeam; pts: number }[] = [];
+    const thirds: Standing[] = [];
     for (const group of groups) {
-      const pts = new Map<string, number>(group.map((t) => [t.code, 0]));
-      for (let a = 0; a < group.length; a++) {
-        for (let b = a + 1; b < group.length; b++) {
-          const ta = group[a];
-          const tb = group[b];
-          if (typeof ta.result === "number" && typeof tb.result === "number") continue;
-          const { w, d } = outcomeProbs(ta.elo, tb.elo);
-          const roll = Math.random();
-          if (roll < w) pts.set(ta.code, (pts.get(ta.code) ?? 0) + 3);
-          else if (roll < w + d) {
-            pts.set(ta.code, (pts.get(ta.code) ?? 0) + 1);
-            pts.set(tb.code, (pts.get(tb.code) ?? 0) + 1);
-          } else pts.set(tb.code, (pts.get(tb.code) ?? 0) + 3);
-        }
-      }
-      const ranked = [...group].sort((x, y) => {
-        const px = typeof x.result === "number" ? x.result : pts.get(x.code) ?? 0;
-        const py = typeof y.result === "number" ? y.result : pts.get(y.code) ?? 0;
-        return py - px || y.elo - x.elo;
-      });
-      top.push(ranked[0], ranked[1]);
-      if (ranked[2]) thirds.push({ team: ranked[2], pts: pts.get(ranked[2].code) ?? 0 });
+      const ranked = simGroup(group);
+      top.push(ranked[0].team, ranked[1].team);
+      if (ranked[2]) thirds.push(ranked[2]);
     }
-    thirds.sort((a, b) => b.pts - a.pts || b.team.elo - a.team.elo);
+    thirds.sort(
+      (a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || adjElo(b.team) - adjElo(a.team),
+    );
     const qualifiers = [...top, ...thirds.slice(0, 8).map((t) => t.team)];
 
-    // Knockout: Elo-seeded single-elim.
     let alive = seedBracket(qualifiers);
     while (alive.length > 1) {
       const next: WcTeam[] = [];
-      for (let i = 0; i < alive.length; i += 2) {
-        const a = alive[i];
-        const b = alive[i + 1];
-        next.push(Math.random() < expected(a.elo, b.elo) ? a : b);
-      }
+      for (let i = 0; i < alive.length; i += 2) next.push(knockoutWinner(alive[i], alive[i + 1]));
       alive = next;
     }
     const champ = alive[0];
