@@ -53,17 +53,29 @@ import { classifyCategory, OTHER_CATEGORY } from "../lib/classify/category";
     return;
   }
 
-  const BATCH = 50;
-  for (let i = 0; i < updates.length; i += BATCH) {
-    const chunk = updates.slice(i, i + BATCH);
-    await prisma.$transaction(
-      chunk.map((u) =>
-        prisma.job.update({ where: { id: u.id }, data: { category: u.to } }),
-      ),
-    );
+  // Apply grouped by target category via updateMany, so the whole backfill is
+  // a few dozen bulk UPDATEs instead of 200k+ per-row updates wrapped in short
+  // 5s $transaction batches (which hit Prisma's P2028 transaction timeout on
+  // the heavily-indexed jobs table).
+  const byTarget = new Map<string, string[]>();
+  for (const u of updates) {
+    const arr = byTarget.get(u.to);
+    if (arr) arr.push(u.id);
+    else byTarget.set(u.to, [u.id]);
+  }
+  let done = 0;
+  for (const [to, ids] of byTarget) {
+    for (let i = 0; i < ids.length; i += 1000) {
+      const slice = ids.slice(i, i + 1000);
+      await prisma.job.updateMany({
+        where: { id: { in: slice } },
+        data: { category: to },
+      });
+      done += slice.length;
+    }
   }
 
-  console.log(`✓ Updated ${updates.length} rows`);
+  console.log(`✓ Updated ${done} rows`);
   await prisma.$disconnect();
 })().catch(async (error) => {
   console.error(error);
