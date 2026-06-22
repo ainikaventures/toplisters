@@ -24,6 +24,7 @@ const JOBS_NAV: NavItem[] = [
 const SPORTS_NAV: NavItem[] = [
   { href: "/f1", label: "Formula 1" },
   { href: "/world-cup", label: "World Cup" },
+  { href: "/sources", label: "Sources" },
   { href: JOBS_HOME, label: "Jobs", external: JOBS_HOME.startsWith("http") },
 ];
 
