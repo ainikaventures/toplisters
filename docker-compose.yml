@@ -20,6 +20,7 @@ services:
       # from the app's build-time env. Empty fallbacks keep the build green.
       args:
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+        NEXT_PUBLIC_SPORTS_URL: ${NEXT_PUBLIC_SPORTS_URL:-}
         NEXT_PUBLIC_POSTHOG_KEY: ${NEXT_PUBLIC_POSTHOG_KEY:-}
         NEXT_PUBLIC_POSTHOG_HOST: ${NEXT_PUBLIC_POSTHOG_HOST:-}
         NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}

@@ -51,6 +51,8 @@ budget + API notes at [`info/BUDGET_AND_APIS.md`](info/BUDGET_AND_APIS.md).
 | `/api/geoip` | Cookie-cached ipapi.co wrapper |
 | `/api/v1/jobs` | Read-only JSON search API (API-key auth) — see below |
 | `/api/ats-jobs` | Public ATS-only discovery index (compliance-scoped) |
+| `/sports`, `/sports/f1`, `/sports/world-cup` | Sports vertical (`sports.toplisters.xyz`) — see below |
+| `/api/sports/roadmap` | POST → AI win-path roadmap (LLM key hidden server-side) |
 
 ## Jobs API (`GET /api/v1/jobs`)
 
@@ -120,6 +122,30 @@ curl -s "https://toplisters.xyz/api/v1/jobs?title=product%20owner,business%20ana
 curl -s "https://toplisters.xyz/api/v1/jobs?q=react&remote=true&page=2" \
   -H "x-api-key: $API_KEY" | jq .
 ```
+
+## Sports vertical (`sports.toplisters.xyz`)
+
+A sibling vertical sharing the brand shell — "championships, mapped to the
+finish". Pick who you want to win → exact "is it still mathematically
+possible" verdict + Monte-Carlo win probability + an AI-generated roadmap.
+
+- **Routes:** `/sports` (landing), `/sports/f1`, `/sports/world-cup`. Served
+  from the **same app** — `middleware.ts` rewrites the `sports.*` host to the
+  `/sports/*` route group (no second deploy).
+- **Engines** (`lib/sports/`): `f1/` pulls live standings from Jolpica-F1
+  (keyless, client-side) and runs a Plackett–Luce Monte Carlo; `worldcup/`
+  is an Elo knockout model over an **editable data file**.
+- **AI roadmap:** `POST /api/sports/roadmap` hides the LLM key server-side
+  (default NVIDIA NIM; Groq/Gemini/Ollama pluggable via env). Degrades
+  gracefully if no key / the provider is down.
+- **Local dev:** visit `/sports/*` directly, or add `127.0.0.1 sports.localhost`
+  to `/etc/hosts` and use `http://sports.localhost:3000` to exercise the host
+  rewrite.
+- **Manual steps:** (1) attach the `sports.toplisters.xyz` domain to the
+  Coolify `web` app + DNS (see DEPLOY.md); (2) **update World Cup results** in
+  [`lib/sports/worldcup/teams.ts`](lib/sports/worldcup/teams.ts) — set each
+  team's `result` (final group points) as games finish; once the group stage
+  ends the model runs purely on the knockout bracket.
 
 ## Local development
 

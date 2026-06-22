@@ -149,6 +149,27 @@ Set these in Coolify (the app's Environment Variables).
 The `api_keys` table ships in migration `20260616000000_add_api_keys`, applied
 by the pre-deploy `prisma migrate deploy` (§5). See README → "Jobs API".
 
+### Sports vertical (`sports.toplisters.xyz`)
+
+Served from the **same** `web` container — `middleware.ts` rewrites the
+`sports.*` host to the internal `/sports/*` route group. No new process, no
+DB/Redis. The only backend piece is `/api/sports/roadmap`, which hides the
+LLM key. All vars optional — the AI roadmap degrades gracefully when unset.
+
+| Var | Purpose |
+|---|---|
+| `SPORTS_AI_PROVIDER` | `nvidia` (default) \| `groq` \| `gemini` \| `ollama`. |
+| `SPORTS_AI_API_KEY` | Generic key override; else the provider's own var below. |
+| `NVIDIA_KEY` / `GROQ_API_KEY` / `GEMINI_API_KEY` | Provider key (server-only). NVIDIA NIM is the free default. |
+| `SPORTS_AI_MODEL`, `SPORTS_AI_BASE_URL` | Optional model / endpoint overrides. |
+| `NEXT_PUBLIC_SPORTS_URL` | Sports origin for cross-vertical header links. **Build arg** (§6). |
+
+**Operator step (DNS + Coolify):** add the domain `sports.toplisters.xyz` to
+the existing Coolify `web` app (so Traefik routes it to the same container,
+under the wildcard `*.toplisters.xyz` TLS) and add the DNS record. No second
+app/deploy. **Data step:** update group results in
+`lib/sports/worldcup/teams.ts` as the World Cup progresses (see README).
+
 ### Social auto-posting (all default off)
 
 | Var | Purpose |
@@ -199,6 +220,7 @@ anything baked into client JS. Coolify forwards build-time env to the build;
 
 ```
 NEXT_PUBLIC_SITE_URL
+NEXT_PUBLIC_SPORTS_URL
 NEXT_PUBLIC_POSTHOG_KEY
 NEXT_PUBLIC_POSTHOG_HOST
 NEXT_PUBLIC_GA_ID
