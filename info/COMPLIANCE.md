@@ -90,6 +90,19 @@ label / a follow link, respectively).
 3. **Attribution on JSON-LD / aggregated sources** — verify the
    underlying boards permit re-display when adding new JSON-LD sites.
 
+## Sources deliberately NOT ingested
+
+- **Gulf regional boards — Bayt, GulfTalent, NaukriGulf** (vetted 2026-06):
+  none offer an official/partner free feed; all prohibit automated
+  scraping/reproduction in their terms (GulfTalent: *"you agree not to…
+  scrape content… except as a search engine… minimal snippets"*; NaukriGulf:
+  *"not… robots/crawlers… to scrape/extract… without explicit consent in
+  writing"*), and Bayt + NaukriGulf actively block non-browser clients
+  (Cloudflare / Akamai) and named aggregator bots. We do **not** scrape them.
+  **Gulf coverage is provided compliantly via Jooble's official API**
+  (UAE/Saudi/Qatar/Kuwait/Oman/Bahrain in `DEFAULT_LOCATIONS`). Revisit only
+  with a signed partner/data agreement.
+
 ## Re-enabling ads (if ever)
 
 Before flipping ads back on you MUST re-read each active provider's terms
