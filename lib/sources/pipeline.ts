@@ -3,6 +3,7 @@ import { geocode } from "@/lib/geocoding/lookup";
 import { resolveCompanyLogo } from "@/lib/logos";
 import { classifyCollar } from "@/lib/classify/collar";
 import { classifyCategory } from "@/lib/classify/category";
+import { detectVisaSponsorship } from "@/lib/classify/visa";
 import { computeDedupeHash } from "./utils";
 import type { JobSource, NormalizedJob } from "./types";
 
@@ -89,6 +90,10 @@ async function processJob(
   // the analytics/category facets don't fragment into a big "Other" bucket.
   const category = classifyCategory({ title: job.title, category: job.category });
 
+  // Visa-sponsorship signal parsed from the description (offered/not/unknown),
+  // stored in the visaSponsorship boolean. Prefer a non-null adapter hint.
+  const visaSponsorship = job.visaSponsorship ?? detectVisaSponsorship(job.descriptionText);
+
   const dedupeHash = computeDedupeHash(
     job.title,
     job.companyName,
@@ -131,6 +136,7 @@ async function processJob(
         benefits: job.benefits,
         collarType,
         category,
+        visaSponsorship,
         countryCode: geo.countryCode ?? UNKNOWN_COUNTRY,
         region: geo.region,
         city: geo.city,
@@ -150,6 +156,7 @@ async function processJob(
       ...job,
       collarType,
       category,
+      visaSponsorship,
       companyLogoUrl,
       countryCode: geo.countryCode ?? UNKNOWN_COUNTRY,
       region: geo.region,
@@ -177,6 +184,7 @@ async function processJob(
       benefits: job.benefits,
       collarType,
       category,
+      visaSponsorship,
       countryCode: geo.countryCode ?? UNKNOWN_COUNTRY,
       region: geo.region,
       city: geo.city,
