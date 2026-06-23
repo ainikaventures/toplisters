@@ -287,3 +287,40 @@ model ApiKey {
 
   @@map("api_keys")
 }
+
+// Recruiter-outreach email inbox. One thread per conversation; `token` is the
+// plus-address tag (reply+<token>@<inbound domain>) used to route inbound
+// replies (via Resend Inbound) back to the right thread.
+model EmailThread {
+  id             String         @id @default(cuid())
+  token          String         @unique
+  recruiterEmail String         @map("recruiter_email")
+  recruiterName  String?        @map("recruiter_name")
+  subject        String
+  status         String         @default("open") // open | closed
+  lastMessageAt  DateTime       @default(now()) @map("last_message_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  messages       EmailMessage[]
+
+  @@index([lastMessageAt])
+  @@map("email_threads")
+}
+
+model EmailMessage {
+  id         String      @id @default(cuid())
+  threadId   String      @map("thread_id")
+  thread     EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  direction  String // "outbound" | "inbound"
+  fromAddr   String      @map("from_addr")
+  toAddr     String      @map("to_addr")
+  subject    String
+  text       String
+  html       String?
+  messageId  String?     @map("message_id")
+  inReplyTo  String?     @map("in_reply_to")
+  providerId String?     @map("provider_id")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  @@index([threadId, createdAt])
+  @@map("email_messages")
+}
