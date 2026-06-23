@@ -18,7 +18,7 @@ import {
   charSnippet,
   normalizedSalaryUsd,
 } from "@/lib/format";
-import { visaSponsorLabel } from "@/lib/classify/visa";
+import { visaSponsorLabel, detectVisaSponsorshipDetail } from "@/lib/classify/visa";
 import { detectFitFlags } from "@/lib/classify/fitflags";
 import { slugify } from "@/lib/slug";
 
@@ -260,6 +260,11 @@ export async function GET(request: Request): Promise<NextResponse> {
   const items = jobs.map((j) => {
     const st = sourceType(j.source);
     const hasSalary = j.salaryMin != null || j.salaryMax != null;
+    // Visa sponsorship: prefer the stored column (drives the ?visa_sponsor
+    // filter); fall back to a fresh parse for rows not yet classified, and
+    // pull the supporting sentence from the description as evidence.
+    const visaDetail = detectVisaSponsorshipDetail(j.descriptionText);
+    const visaAvailable = j.visaSponsorship ?? visaDetail.value;
     const distance_mi =
       near && !(j.lat === 0 && j.lng === 0)
         ? Math.round(haversineMi(near.lat, near.lng, j.lat, j.lng) * 10) / 10
@@ -292,7 +297,14 @@ export async function GET(request: Request): Promise<NextResponse> {
       apply_url_direct: st === "direct" ? (j.applyUrl ?? null) : null,
       source: j.source,
       source_type: st,
+      // Backward-compatible enum: offered | not_offered | unknown.
       visa_sponsor: visaSponsorLabel(j.visaSponsorship),
+      // Richer sponsorship object: yes/no boolean + the supporting sentence.
+      visa_sponsorship: {
+        available: visaAvailable, // true (yes) | false (no) | null (unknown)
+        status: visaSponsorLabel(visaAvailable),
+        details: visaDetail.details, // e.g. "Tier 2 / Skilled Worker visa available" — or null
+      },
       posted_at: j.postedDate ? j.postedDate.toISOString() : null,
       // Structured salary {min,max,currency,period} + a human display string.
       salary: hasSalary

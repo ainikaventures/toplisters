@@ -106,7 +106,10 @@ always present), `apply_url` (as ingested — the wrapper for aggregator
 sources), `apply_url_direct` (the direct employer/source link — present for
 `source_type: "direct"`, null for aggregator wrappers), `source`,
 `source_type` (`direct` | `aggregator`), `visa_sponsor`
-(`offered` | `not_offered` | `unknown`), `fit_flags[]`
+(`offered` | `not_offered` | `unknown`),
+`visa_sponsorship` (`{available: true|false|null, status, details}` — the
+yes/no boolean plus the supporting sentence from the description, or null),
+`fit_flags[]`
 (`relocation_required` | `language_gated` | `clearance_required`),
 `salary_normalized` (`{min,max,currency:"USD",period:"yearly"}` or null),
 `posted_at`, `salary`
