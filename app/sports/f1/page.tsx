@@ -6,7 +6,6 @@ export const metadata: Metadata = {
   title: "Formula 1 — can your driver still win the title?",
   description:
     "Live F1 driver standings. Pick a driver: see if they're still mathematically alive, the exact magic numbers, their simulated championship odds, and the roadmap to the title.",
-  alternates: { canonical: "/sports/f1" },
   ...sportsSocial({
     title: "F1 title chances — Toplisters Sports",
     description: "Live standings, exact possibility maths, win probability, and an AI roadmap.",
