@@ -7,7 +7,7 @@ import "server-only";
  * them. Everything else (ATS, Recruitment Revolution, open feeds) carries a
  * direct posting URL.
  */
-export const AGGREGATOR_SOURCES = ["adzuna", "reed", "jooble", "findwork", "the_muse"];
+export const AGGREGATOR_SOURCES = ["adzuna", "reed", "jooble", "findwork", "the_muse", "workable"];
 const AGG = new Set(AGGREGATOR_SOURCES);
 
 export type SourceType = "direct" | "aggregator";

@@ -12,6 +12,7 @@ import { remotive } from "./remotive";
 import { ashby } from "./ashby";
 import { smartRecruiters } from "./smartrecruiters";
 import { workday } from "./workday";
+import { workable } from "./workable";
 import { recruitmentRevolution } from "./recruitmentrevolution";
 import { createJsonLdSource } from "./jsonld/source";
 import { JSON_LD_SITES } from "./jsonld/sites";
@@ -43,6 +44,7 @@ export const sources: readonly JobSource[] = [
   ashby,
   smartRecruiters,
   workday,
+  workable,
   recruitmentRevolution,
   ...jsonLdSources,
 ];
