@@ -86,6 +86,13 @@ const COUNTRY_SCHEMES: Record<string, SchemeDef[]> = {
       blurb: "self-sponsored, no tie",
       threshold: { amount: 360000, currency: "AED" }, // ~AED 30k/mo
     },
+    {
+      name: "Golden Visa",
+      country: "United Arab Emirates",
+      freedom: "high",
+      blurb: "10-yr, self-sponsored, family",
+      threshold: { amount: 360000, currency: "AED" }, // skilled-professional route, ~AED 30k/mo
+    },
   ],
   DE: [
     {
