@@ -121,6 +121,7 @@ Set these in Coolify (the app's Environment Variables).
 |---|---|
 | `LOGO_DEV_PUBLISHABLE_KEY`, `LOGO_DEV_SECRET_KEY` | Logo.dev — company logos. |
 | `RESEND_API_KEY`, `RESEND_FROM` | Resend transactional email. Blank `RESEND_API_KEY` ⇒ email no-ops. `RESEND_FROM` defaults to Resend's sandbox sender until your domain is verified. |
+| `OUTREACH_FROM`, `INBOUND_DOMAIN`, `RESEND_WEBHOOK_SECRET` | Recruiter-outreach inbox (`/admin/inbox`). Send from `OUTREACH_FROM` (use a subdomain), receive replies via Resend Inbound → `/api/email/inbound`, routed by `reply+<token>@INBOUND_DOMAIN`. The webhook is **disabled until `RESEND_WEBHOOK_SECRET` is set** (fails closed). See "Recruiter inbox setup" below. |
 | `IPAPI_KEY` | ipapi.co (works keyless on free tier). |
 
 ### Monitoring + analytics
@@ -148,6 +149,30 @@ Set these in Coolify (the app's Environment Variables).
 
 The `api_keys` table ships in migration `20260616000000_add_api_keys`, applied
 by the pre-deploy `prisma migrate deploy` (§5). See README → "Jobs API".
+
+### Recruiter inbox setup (send + receive email)
+
+Two-way email with recruiters, managed at `/admin/inbox` (behind admin basic-auth).
+Tables ship in migration `20260623000000_add_email_inbox` (applied by `prisma
+migrate deploy`). One-time operator setup:
+
+1. **Sending** — verify a sending subdomain in Resend (e.g. `mail.toplisters.xyz`):
+   add the DKIM/SPF records Resend shows, then set `OUTREACH_FROM="Toplisters
+   <outreach@mail.toplisters.xyz>"`. Using a subdomain keeps cold-outreach
+   reputation off the apex domain.
+2. **Receiving** — in Resend, add a **receiving domain** (e.g. `inbound.toplisters.xyz`)
+   and create the **MX** record it specifies. Set `INBOUND_DOMAIN="inbound.toplisters.xyz"`.
+3. **Webhook** — in Resend → Webhooks, add an endpoint for `email.received` pointing
+   at `https://toplisters.xyz/api/email/inbound`, and copy its **signing secret**
+   into `RESEND_WEBHOOK_SECRET` (`whsec_…`). The webhook **fails closed** (503)
+   until this is set, so set it last.
+4. **Verify** — `/admin/inbox` → New outreach to a test address you control →
+   reply → it threads back under the conversation within seconds.
+
+Deliverability: keep daily volume modest, warm the subdomain, and include an
+opt-out line in outreach (the compose form's default body is a starting point).
+The exact inbound payload field names should be confirmed against the first real
+inbound email; `app/api/email/inbound/route.ts` reads `text`/`html` defensively.
 
 ### Sports vertical (`sports.toplisters.xyz`)
 
