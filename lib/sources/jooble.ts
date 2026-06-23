@@ -30,6 +30,13 @@ const DEFAULT_LOCATIONS: readonly { label: string; iso2: string }[] = [
   { label: "Kuwait", iso2: "KW" },
   { label: "Oman", iso2: "OM" },
   { label: "Bahrain", iso2: "BH" },
+  // Wider Middle East / Levant — big destination markets for visa-seeking
+  // candidates, also Jooble-only (the regional boards prohibit scraping).
+  // Coverage verified live: Egypt, Jordan, Lebanon, Turkey all return jobs.
+  { label: "Egypt", iso2: "EG" },
+  { label: "Jordan", iso2: "JO" },
+  { label: "Lebanon", iso2: "LB" },
+  { label: "Turkey", iso2: "TR" },
 ];
 
 interface JoobleItem {
@@ -109,8 +116,8 @@ function sleep(ms: number): Promise<void> {
  *
  * Per-country budget at the 90-min cadence already in scheduler.ts
  * (jooble: 90):
- *   15 countries × 1 page × 50 results = 15 calls/run × 16 runs/day
- *   ≈ 240 calls/day — well under typical free-tier limits.
+ *   19 countries × 1 page × 50 results = 19 calls/run × 16 runs/day
+ *   ≈ 304 calls/day — well under typical free-tier limits.
  *
  * Quirks:
  *  - POST endpoint with API key in the URL path: POST /api/<key>
