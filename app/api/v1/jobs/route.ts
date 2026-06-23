@@ -190,6 +190,16 @@ export async function GET(request: Request): Promise<NextResponse> {
     }
   }
 
+  // Licensed-sponsor (UK register) filters.
+  let licensedFilter: boolean | null = null;
+  const licRaw = sp.get("licensed_sponsor");
+  if (licRaw !== null) {
+    if (licRaw === "true") licensedFilter = true;
+    else if (licRaw === "false") licensedFilter = false;
+    else return err(400, "licensed_sponsor must be true|false", headers);
+  }
+  const sponsorRoute = sp.get("sponsor_route")?.trim() || null;
+
   const page = Math.max(1, Number.parseInt(sp.get("page") ?? "1", 10) || 1);
   const perPageRaw = Number.parseInt(sp.get("per_page") ?? "", 10);
   const perPage = Math.min(
@@ -222,6 +232,9 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (visaFilter === "offered") cond.push(Prisma.sql`visa_sponsorship = true`);
   if (visaFilter === "not_offered") cond.push(Prisma.sql`visa_sponsorship = false`);
   if (visaFilter === "unknown") cond.push(Prisma.sql`visa_sponsorship IS NULL`);
+  if (licensedFilter === true) cond.push(Prisma.sql`employer_licensed_sponsor = true`);
+  if (licensedFilter === false) cond.push(Prisma.sql`employer_licensed_sponsor = false`);
+  if (sponsorRoute) cond.push(Prisma.sql`${sponsorRoute} = ANY(sponsor_routes)`);
   if (near && radiusMi != null) {
     // Haversine in SQL (no PostGIS dependency). Exclude ungeocoded/null-island rows.
     cond.push(Prisma.sql`(lat <> 0 OR lng <> 0)`);
@@ -305,6 +318,16 @@ export async function GET(request: Request): Promise<NextResponse> {
         status: visaSponsorLabel(visaAvailable),
         details: visaDetail.details, // e.g. "Tier 2 / Skilled Worker visa available" — or null
       },
+      // UK Register of Licensed Sponsors (checks the EMPLOYER'S actual licence,
+      // not just JD text). null = not checked / non-UK. See README caveat.
+      employer_licensed_sponsor: j.employerLicensedSponsor,
+      sponsor_routes: j.sponsorRoutes,
+      sponsor_rating: j.sponsorRating,
+      sponsor_match_confidence: j.sponsorMatchConfidence,
+      // Combined signal: employer is licensed AND the JD doesn't deny sponsorship.
+      sponsorship_likely:
+        j.employerLicensedSponsor === true &&
+        visaSponsorLabel(j.visaSponsorship) !== "not_offered",
       posted_at: j.postedDate ? j.postedDate.toISOString() : null,
       // Structured salary {min,max,currency,period} + a human display string.
       salary: hasSalary

@@ -90,6 +90,13 @@ model Job {
   skills           String[]
   benefits         String[]
   visaSponsorship  Boolean?         @map("visa_sponsorship")
+  // UK Register of Licensed Sponsors cross-reference (Task 8). Populated for
+  // GB jobs by `npm run sponsors:refresh` (daily). null = not checked / non-UK.
+  employerLicensedSponsor Boolean?  @map("employer_licensed_sponsor")
+  sponsorRoutes           String[]  @default([]) @map("sponsor_routes")
+  sponsorRating           String?   @map("sponsor_rating")
+  sponsorMatchConfidence  String?   @map("sponsor_match_confidence")
+  sponsorCheckedAt        DateTime? @map("sponsor_checked_at")
   isUserSubmitted  Boolean          @default(false) @map("is_user_submitted")
   submittedByEmail String?          @map("submitted_by_email")
   moderationStatus ModerationStatus @default(approved) @map("moderation_status")
@@ -114,6 +121,7 @@ model Job {
   @@index([countryCode, city, isActive])
   @@index([category, isActive])
   @@index([isActive, postedDate(sort: Desc)])
+  @@index([employerLicensedSponsor, isActive])
   @@index([isFeatured(sort: Desc), postedDate(sort: Desc)])
   @@index([lastSeenAt])
   @@map("jobs")

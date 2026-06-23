@@ -150,6 +150,13 @@ Set these in Coolify (the app's Environment Variables).
 The `api_keys` table ships in migration `20260616000000_add_api_keys`, applied
 by the pre-deploy `prisma migrate deploy` (§5). See README → "Jobs API".
 
+**UK Licensed-Sponsor enrichment (Task 8).** Migration
+`20260623100000_add_sponsor_licence` adds the sponsor columns (auto-applied by
+`prisma migrate deploy`). The worker schedules `refresh-sponsors` daily at 05:30
+UTC (downloads the gov.uk register, tags every active GB employer). To populate
+immediately after deploy without waiting for the schedule, run once:
+`npm run sponsors:refresh` (add `-- --dry` to preview counts). No env/keys needed.
+
 ### Recruiter inbox setup (send + receive email)
 
 Two-way email with recruiters, managed at `/admin/inbox` (behind admin basic-auth).
