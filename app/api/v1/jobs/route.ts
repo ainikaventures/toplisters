@@ -211,6 +211,16 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
   const visaScheme = sp.get("visa_scheme")?.trim() || null;
 
+  // Unified visa-viability filter (any country): flexible pathway OR JD offers
+  // sponsorship OR a licensed UK employer that doesn't deny it.
+  let visaViableFilter: boolean | null = null;
+  const vvRaw = sp.get("visa_viable");
+  if (vvRaw !== null) {
+    if (vvRaw === "true") visaViableFilter = true;
+    else if (vvRaw === "false") visaViableFilter = false;
+    else return err(400, "visa_viable must be true|false", headers);
+  }
+
   const page = Math.max(1, Number.parseInt(sp.get("page") ?? "1", 10) || 1);
   const perPageRaw = Number.parseInt(sp.get("per_page") ?? "", 10);
   const perPage = Math.min(
@@ -249,6 +259,9 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (flexibleVisaFilter === true) cond.push(Prisma.sql`flexible_visa = true`);
   if (flexibleVisaFilter === false) cond.push(Prisma.sql`flexible_visa = false`);
   if (visaScheme) cond.push(Prisma.sql`${visaScheme} = ANY(visa_schemes)`);
+  const visaViableSql = Prisma.sql`(flexible_visa = true OR visa_sponsorship = true OR (employer_licensed_sponsor = true AND visa_sponsorship IS DISTINCT FROM false))`;
+  if (visaViableFilter === true) cond.push(visaViableSql);
+  if (visaViableFilter === false) cond.push(Prisma.sql`NOT ${visaViableSql}`);
   if (near && radiusMi != null) {
     // Haversine in SQL (no PostGIS dependency). Exclude ungeocoded/null-island rows.
     cond.push(Prisma.sql`(lat <> 0 OR lng <> 0)`);
@@ -292,7 +305,12 @@ export async function GET(request: Request): Promise<NextResponse> {
     // pull the supporting sentence from the description as evidence.
     const visaDetail = detectVisaSponsorshipDetail(j.descriptionText);
     const visaAvailable = j.visaSponsorship ?? visaDetail.value;
+    const visaStatus = visaSponsorLabel(visaAvailable);
     const visaPathways = computeVisaPathways(j);
+    const scaleupSponsor = (j.sponsorRoutes ?? []).some((r) => /scale[\s-]?up/i.test(r));
+    const sponsorshipLikely = j.employerLicensedSponsor === true && visaStatus !== "not_offered";
+    // Unified, country-agnostic viability flag (mirrors the ?visa_viable filter).
+    const visaViable = sponsorshipLikely || visaPathways.flexible_visa || visaStatus === "offered";
     const distance_mi =
       near && !(j.lat === 0 && j.lng === 0)
         ? Math.round(haversineMi(near.lat, near.lng, j.lat, j.lng) * 10) / 10
@@ -325,29 +343,33 @@ export async function GET(request: Request): Promise<NextResponse> {
       apply_url_direct: st === "direct" ? (j.applyUrl ?? null) : null,
       source: j.source,
       source_type: st,
-      // Backward-compatible enum: offered | not_offered | unknown.
-      visa_sponsor: visaSponsorLabel(j.visaSponsorship),
+      // Enum: offered | not_offered | unknown. Kept in sync with
+      // visa_sponsorship.status (both derive from the same resolved value).
+      visa_sponsor: visaStatus,
       // Richer sponsorship object: yes/no boolean + the supporting sentence.
       visa_sponsorship: {
         available: visaAvailable, // true (yes) | false (no) | null (unknown)
-        status: visaSponsorLabel(visaAvailable),
+        status: visaStatus,
         details: visaDetail.details, // e.g. "Tier 2 / Skilled Worker visa available" — or null
       },
       // UK Register of Licensed Sponsors (checks the EMPLOYER'S actual licence,
       // not just JD text). null = not checked / non-UK. See README caveat.
       employer_licensed_sponsor: j.employerLicensedSponsor,
       sponsor_routes: j.sponsorRoutes,
+      // Dedicated flag: employer holds the UK "Scale-up" route (≈91 employers).
+      scaleup_sponsor: scaleupSponsor,
       sponsor_rating: j.sponsorRating,
       sponsor_match_confidence: j.sponsorMatchConfidence,
       // Combined signal: employer is licensed AND the JD doesn't deny sponsorship.
-      sponsorship_likely:
-        j.employerLicensedSponsor === true &&
-        visaSponsorLabel(j.visaSponsorship) !== "not_offered",
+      sponsorship_likely: sponsorshipLikely,
       // Freedom-oriented visa pathways for the job's country (Task 9), computed
       // fresh. flexible_visa = a high-freedom scheme applies (PR/self-sponsored/
       // portable). threshold_met compares the normalised salary to the floor.
       visa_pathways: visaPathways.pathways,
       flexible_visa: visaPathways.flexible_visa,
+      // Unified, country-agnostic: true if the role is visa-viable by ANY route
+      // (flexible pathway, JD-offered sponsorship, or licensed UK employer).
+      visa_viable: visaViable,
       posted_at: j.postedDate ? j.postedDate.toISOString() : null,
       // Structured salary {min,max,currency,period} + a human display string.
       salary: hasSalary

@@ -93,6 +93,7 @@ revoke with `npm run apikey -- revoke <prefix>`). Missing/invalid → `401`.
 | `sponsor_route` | exact route name, e.g. `Skilled Worker` — employer is licensed for that visa route |
 | `flexible_visa` | `true` \| `false` — a high-freedom visa pathway (PR / self-sponsored / portable) applies in the job's country |
 | `visa_scheme` | exact scheme name, e.g. `Critical Skills Employment Permit` — country offers that pathway for the role |
+| `visa_viable` | `true` \| `false` — **unified, any-country** viability: `flexible_visa` OR JD offers sponsorship OR a licensed UK employer that doesn't deny it. One flag for "this role is workable on a visa" |
 | `since` (alias `posted_after`) | ISO-8601 date/datetime — jobs posted on/after (for incremental scans) |
 | `page` | 1-based page (default 1) |
 | `per_page` | default 100, max 200 |
@@ -114,13 +115,16 @@ sources), `apply_url_direct` (the direct employer/source link — present for
 `visa_sponsorship` (`{available: true|false|null, status, details}` — the
 yes/no boolean plus the supporting sentence from the description, or null),
 `employer_licensed_sponsor` (`true|false|null` — UK register check on the
-employer; null = not checked / non-UK), `sponsor_routes[]`, `sponsor_rating`
+employer; null = not checked / non-UK), `sponsor_routes[]` (exact gov.uk route
+names, e.g. `"Scale-up"`, `"Skilled Worker"`), `scaleup_sponsor`
+(`true|false` — employer holds the UK Scale-up route), `sponsor_rating`
 (`A|B|null`), `sponsor_match_confidence` (`high|medium|low|null`),
-`sponsorship_likely` (`employer_licensed_sponsor === true` **and**
+`sponsorship_likely` (UK-only: `employer_licensed_sponsor === true` **and**
 `visa_sponsor !== "not_offered"`),
 `visa_pathways[]` (`{name, country, freedom: high|medium, blurb, threshold_met:
 true|false|null}` — freedom-oriented schemes for the job's country),
 `flexible_visa` (any high-freedom scheme applies),
+`visa_viable` (unified any-country viability — see filter table),
 `fit_flags[]`
 (`relocation_required` | `language_gated` | `clearance_required`),
 `salary_normalized` (`{min,max,currency:"USD",period:"yearly"}` or null),
