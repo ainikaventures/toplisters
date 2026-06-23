@@ -89,6 +89,8 @@ revoke with `npm run apikey -- revoke <prefix>`). Missing/invalid → `401`.
 | `salary_min` + `salary_period` | Salary floor (integer) + optional period (`hourly`\|`daily`\|`monthly`\|`yearly`). Floor excludes unknown-salary rows |
 | `source_type` | `direct` (employer/ATS apply link) \| `aggregator` (provider wrapper) |
 | `visa_sponsor` | `offered` \| `not_offered` \| `unknown` — parsed from the description |
+| `licensed_sponsor` | `true` \| `false` — employer is on the UK Register of Licensed Sponsors (Workers). `true` is a positive signal; on the register ≠ guaranteed for a given role, but NOT on it ⇒ can't sponsor (reliable negative) |
+| `sponsor_route` | exact route name, e.g. `Skilled Worker` — employer is licensed for that visa route |
 | `since` (alias `posted_after`) | ISO-8601 date/datetime — jobs posted on/after (for incremental scans) |
 | `page` | 1-based page (default 1) |
 | `per_page` | default 100, max 200 |
@@ -109,6 +111,11 @@ sources), `apply_url_direct` (the direct employer/source link — present for
 (`offered` | `not_offered` | `unknown`),
 `visa_sponsorship` (`{available: true|false|null, status, details}` — the
 yes/no boolean plus the supporting sentence from the description, or null),
+`employer_licensed_sponsor` (`true|false|null` — UK register check on the
+employer; null = not checked / non-UK), `sponsor_routes[]`, `sponsor_rating`
+(`A|B|null`), `sponsor_match_confidence` (`high|medium|low|null`),
+`sponsorship_likely` (`employer_licensed_sponsor === true` **and**
+`visa_sponsor !== "not_offered"`),
 `fit_flags[]`
 (`relocation_required` | `language_gated` | `clearance_required`),
 `salary_normalized` (`{min,max,currency:"USD",period:"yearly"}` or null),
@@ -120,6 +127,15 @@ yes/no boolean plus the supporting sentence from the description, or null),
 > Direct apply links: aggregator APIs (Adzuna/Reed/Jooble/Findwork/The Muse)
 > return only their own wrapper, so `apply_url_direct` is null for those.
 > Filter with `source_type=direct` to get only employer/ATS-applicable rows.
+
+> **Licensed sponsor (UK):** `employer_licensed_sponsor` cross-references the
+> employer name against the gov.uk [Register of Licensed Sponsors
+> (Workers)](https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers),
+> refreshed daily (`npm run sponsors:refresh`, also scheduled in the worker).
+> Best-effort name match (`sponsor_match_confidence` flags `low`-confidence
+> hits). Being **licensed ≠ guaranteed sponsorship** for a specific role — but
+> an employer **not** on the register definitely can't, so `licensed_sponsor=false`
+> is a reliable exclusion. Combine with the JD-text signal via `sponsorship_likely`.
 
 **Examples:**
 

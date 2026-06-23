@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { redis, QUEUE_NAMES } from "./queue";
 import { runDigest, type DigestStats } from "./digest";
 import { runSocialPosting, type RunStats as SocialRunStats } from "@/lib/social/runner";
+import { runSponsorRefresh, type SponsorRefreshStats } from "@/lib/sponsors/refresh";
 
 const STALE_DAYS = 30;
 
@@ -10,6 +11,7 @@ export interface MaintenanceJobResult {
   deactivated?: number;
   digest?: DigestStats;
   social?: SocialRunStats[];
+  sponsors?: SponsorRefreshStats;
   noop?: true;
 }
 
@@ -59,6 +61,13 @@ export function createMaintenanceWorker(): Worker<unknown, MaintenanceJobResult>
           // runner make this safe to call multiple times a day.
           const stats = await runSocialPosting();
           return { social: stats };
+        }
+        case "refresh-sponsors": {
+          // UK Register of Licensed Sponsors cross-reference (Task 8).
+          // Network-bound (downloads ~142k rows); attempts/backoff cover a
+          // transient gov.uk hiccup.
+          const stats = await runSponsorRefresh();
+          return { sponsors: stats };
         }
         default:
           return { noop: true };

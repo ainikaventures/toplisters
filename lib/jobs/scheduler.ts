@@ -96,6 +96,16 @@ export async function registerSchedules(): Promise<void> {
   );
   summary.push({ id: "maintenance:post-to-social", everyMin: 8 * 60 });
 
+  // Daily UK Licensed-Sponsor refresh at 05:30 UTC — gov.uk republishes the
+  // register on business mornings, so we pick it up after. Re-tags every
+  // active GB employer (Task 8). Safe to run repeatedly (idempotent).
+  await maintenanceQueue.upsertJobScheduler(
+    "maintenance:refresh-sponsors",
+    { pattern: "30 5 * * *" },
+    { name: "refresh-sponsors" },
+  );
+  summary.push({ id: "maintenance:refresh-sponsors", everyMin: 24 * 60 });
+
   console.log("Schedules registered:");
   for (const { id, everyMin } of summary) {
     console.log(`  ${id} → every ${everyMin} min`);
