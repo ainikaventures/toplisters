@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { pageOpenGraph } from "@/lib/seo/og";
+import { sportsSocial } from "@/lib/seo/og";
 import { WC_TEAMS } from "@/lib/sports/worldcup/teams";
 import { fetchWcStandings, applyStandings } from "@/lib/sports/worldcup/standings";
 import { WorldCupApp } from "../_components/WorldCupApp";
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description:
     "FIFA World Cup 2026 win-path tool. Pick a nation: see their projected knockout bracket, per-round odds, simulated title probability, and the roadmap to the final.",
   alternates: { canonical: "/sports/world-cup" },
-  openGraph: pageOpenGraph({
+  ...sportsSocial({
     title: "World Cup 2026 title chances — Toplisters Sports",
     description: "Projected bracket path, per-round odds, win probability, and an AI roadmap.",
     url: "/sports/world-cup",

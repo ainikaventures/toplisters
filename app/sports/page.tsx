@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { pageOpenGraph } from "@/lib/seo/og";
+import { sportsSocial } from "@/lib/seo/og";
 
 export const metadata: Metadata = {
   title: "Sports — championships, mapped to the finish",
   description:
     "Pick who you want to win, get the exact 'is it still mathematically possible' verdict, a Monte-Carlo win probability, and an AI roadmap of how they get there. Formula 1 + FIFA World Cup 2026.",
   alternates: { canonical: "/sports" },
-  openGraph: pageOpenGraph({
+  ...sportsSocial({
     title: "Toplisters Sports — championships, mapped to the finish",
     description:
       "Win probabilities, exact possibility maths, and prescriptive AI roadmaps for F1 and the World Cup.",

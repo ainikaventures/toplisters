@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { pageOpenGraph } from "@/lib/seo/og";
+import { sportsSocial } from "@/lib/seo/og";
 import { F1App } from "../_components/F1App";
 
 export const metadata: Metadata = {
@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     "Live F1 driver standings. Pick a driver: see if they're still mathematically alive, the exact magic numbers, their simulated championship odds, and the roadmap to the title.",
   alternates: { canonical: "/sports/f1" },
-  openGraph: pageOpenGraph({
+  ...sportsSocial({
     title: "F1 title chances — Toplisters Sports",
     description: "Live standings, exact possibility maths, win probability, and an AI roadmap.",
     url: "/sports/f1",
