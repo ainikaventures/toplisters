@@ -15,6 +15,8 @@ export interface SendArgs {
   html: string;
   /** Plaintext fallback. If omitted Resend derives one from the HTML. */
   text?: string;
+  /** Reply-To address (e.g. so a contact reply goes straight to the sender). */
+  replyTo?: string;
 }
 
 export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; preview?: string }> {
@@ -40,6 +42,7 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; preview?
       subject: args.subject,
       html: args.html,
       ...(args.text ? { text: args.text } : {}),
+      ...(args.replyTo ? { reply_to: args.replyTo } : {}),
     }),
   });
 
