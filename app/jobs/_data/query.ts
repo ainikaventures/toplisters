@@ -5,6 +5,8 @@ import type { Job, $Enums } from "@/lib/generated/prisma/client";
 
 export const PAGE_SIZE = 24;
 
+export type VisaSponsorFilter = "offered" | "not_offered" | "unknown";
+
 export interface JobFilters {
   q: string | null;
   country: string | null;
@@ -14,6 +16,12 @@ export interface JobFilters {
   collarType: $Enums.CollarType | null;
   salaryMin: number | null;
   salaryMax: number | null;
+  visaSponsor: VisaSponsorFilter | null;
+}
+
+/** Map the visa filter onto the visaSponsorship boolean (null = unknown). */
+function visaWhere(v: VisaSponsorFilter): boolean | null {
+  return v === "offered" ? true : v === "not_offered" ? false : null;
 }
 
 export interface JobListResult {
@@ -35,6 +43,7 @@ function buildPrismaWhere(filters: JobFilters): Prisma.JobWhereInput {
   if (filters.collarType) where.collarType = filters.collarType;
   if (filters.salaryMin) where.salaryMin = { gte: filters.salaryMin };
   if (filters.salaryMax) where.salaryMax = { lte: filters.salaryMax };
+  if (filters.visaSponsor) where.visaSponsorship = visaWhere(filters.visaSponsor);
   return where;
 }
 
@@ -59,6 +68,12 @@ function buildSqlAndClauses(filters: JobFilters): Prisma.Sql {
     clauses.push(Prisma.sql`salary_min >= ${filters.salaryMin}`);
   if (filters.salaryMax)
     clauses.push(Prisma.sql`salary_max <= ${filters.salaryMax}`);
+  if (filters.visaSponsor === "offered")
+    clauses.push(Prisma.sql`visa_sponsorship = true`);
+  if (filters.visaSponsor === "not_offered")
+    clauses.push(Prisma.sql`visa_sponsorship = false`);
+  if (filters.visaSponsor === "unknown")
+    clauses.push(Prisma.sql`visa_sponsorship IS NULL`);
   if (clauses.length === 0) return Prisma.empty;
   return Prisma.sql` AND ${Prisma.join(clauses, " AND ")}`;
 }
@@ -169,6 +184,7 @@ export async function fetchFacets(filters: JobFilters): Promise<JobsFacets> {
   if (filters.collarType) base.collarType = filters.collarType;
   if (filters.salaryMin) base.salaryMin = { gte: filters.salaryMin };
   if (filters.salaryMax) base.salaryMax = { lte: filters.salaryMax };
+  if (filters.visaSponsor) base.visaSponsorship = visaWhere(filters.visaSponsor);
 
   const whereForCountries: Prisma.JobWhereInput = {
     ...base,

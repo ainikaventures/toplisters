@@ -170,6 +170,18 @@ export function JobsFilters({
         </SelectField>
       </FilterField>
 
+      <FilterField label="Visa sponsorship">
+        <SelectField
+          name="visaSponsor"
+          value={filters.visaSponsor}
+          onChange={handleSelectChange}
+        >
+          <option value="offered">Sponsorship offered</option>
+          <option value="not_offered">No sponsorship</option>
+          <option value="unknown">Not stated</option>
+        </SelectField>
+      </FilterField>
+
       <FilterField label="Job type">
         <SelectField
           name="jobType"
