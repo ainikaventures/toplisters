@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
 import { sportsSocial } from "@/lib/seo/og";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SPORTS_URL || "/sports";
-
 export const metadata: Metadata = {
   title: "Data sources",
   description:
     "The data behind Toplisters Sports — live feeds and models per sport, with attribution. F1 standings come live from Jolpica-F1; the World Cup uses an Elo model with an optional live results feed.",
-  alternates: { canonical: `${SITE_URL}/sources` },
   ...sportsSocial({
     title: "Sports data sources · Toplisters",
     description: "Live feeds and models behind each sport, with attribution.",

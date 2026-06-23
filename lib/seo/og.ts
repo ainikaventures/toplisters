@@ -34,18 +34,35 @@ export function pageOpenGraph(input: {
   };
 }
 
+// The sports vertical is served on its own host (sports.toplisters.xyz/<x>) as
+// well as the apex route (toplisters.xyz/sports/<x>). The subdomain is the
+// branded/shared URL, so canonical + og:url point there to consolidate the
+// duplicate. Build-time NEXT_PUBLIC_SPORTS_URL; sensible default otherwise.
+const SPORTS_URL = (
+  process.env.NEXT_PUBLIC_SPORTS_URL || "https://sports.toplisters.xyz"
+).replace(/\/$/, "");
+
+/** Map an internal "/sports/<x>" route path to the public sports-host URL. */
+export function sportsHostUrl(routePath: string): string {
+  const rest = routePath.replace(/^\/sports/, "");
+  return SPORTS_URL + (rest || "/");
+}
+
 /**
- * Full social metadata (openGraph + twitter) for a sports page. The layout
- * sets twitter.images to the jobs card, so sports pages must override BOTH —
- * a page that only sets openGraph still unfurls the jobs board on Twitter/X.
+ * Full social metadata (openGraph + twitter + canonical) for a sports page.
+ * The layout sets twitter.images to the jobs card, so sports pages must
+ * override BOTH — a page that only sets openGraph still unfurls the jobs board
+ * on Twitter/X. canonical + og:url use the sports host (not the apex route).
  */
 export function sportsSocial(input: {
   title?: string;
   description?: string;
   url: string;
-}): Pick<Metadata, "openGraph" | "twitter"> {
+}): Pick<Metadata, "openGraph" | "twitter" | "alternates"> {
+  const canonical = sportsHostUrl(input.url);
   return {
-    openGraph: pageOpenGraph({ ...input, image: SPORTS_OG_IMAGE }),
+    alternates: { canonical },
+    openGraph: pageOpenGraph({ ...input, url: canonical, image: SPORTS_OG_IMAGE }),
     twitter: {
       card: "summary_large_image",
       title: input.title,

@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   title: "World Cup 2026 — can your team win it?",
   description:
     "FIFA World Cup 2026 win-path tool. Pick a nation: see their projected knockout bracket, per-round odds, simulated title probability, and the roadmap to the final.",
-  alternates: { canonical: "/sports/world-cup" },
   ...sportsSocial({
     title: "World Cup 2026 title chances — Toplisters Sports",
     description: "Projected bracket path, per-round odds, win probability, and an AI roadmap.",
