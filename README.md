@@ -91,6 +91,8 @@ revoke with `npm run apikey -- revoke <prefix>`). Missing/invalid → `401`.
 | `visa_sponsor` | `offered` \| `not_offered` \| `unknown` — parsed from the description |
 | `licensed_sponsor` | `true` \| `false` — employer is on the UK Register of Licensed Sponsors (Workers). `true` is a positive signal; on the register ≠ guaranteed for a given role, but NOT on it ⇒ can't sponsor (reliable negative) |
 | `sponsor_route` | exact route name, e.g. `Skilled Worker` — employer is licensed for that visa route |
+| `flexible_visa` | `true` \| `false` — a high-freedom visa pathway (PR / self-sponsored / portable) applies in the job's country |
+| `visa_scheme` | exact scheme name, e.g. `Critical Skills Employment Permit` — country offers that pathway for the role |
 | `since` (alias `posted_after`) | ISO-8601 date/datetime — jobs posted on/after (for incremental scans) |
 | `page` | 1-based page (default 1) |
 | `per_page` | default 100, max 200 |
@@ -116,6 +118,9 @@ employer; null = not checked / non-UK), `sponsor_routes[]`, `sponsor_rating`
 (`A|B|null`), `sponsor_match_confidence` (`high|medium|low|null`),
 `sponsorship_likely` (`employer_licensed_sponsor === true` **and**
 `visa_sponsor !== "not_offered"`),
+`visa_pathways[]` (`{name, country, freedom: high|medium, blurb, threshold_met:
+true|false|null}` — freedom-oriented schemes for the job's country),
+`flexible_visa` (any high-freedom scheme applies),
 `fit_flags[]`
 (`relocation_required` | `language_gated` | `clearance_required`),
 `salary_normalized` (`{min,max,currency:"USD",period:"yearly"}` or null),
@@ -136,6 +141,16 @@ employer; null = not checked / non-UK), `sponsor_routes[]`, `sponsor_rating`
 > hits). Being **licensed ≠ guaranteed sponsorship** for a specific role — but
 > an employer **not** on the register definitely can't, so `licensed_sponsor=false`
 > is a reliable exclusion. Combine with the JD-text signal via `sponsorship_likely`.
+
+> **Flexible-visa pathways (Task 9):** `visa_pathways` tags the freedom-oriented
+> work-visa schemes available in the job's country (UK Scale-up / Skilled Worker,
+> Ireland Critical Skills, Canada Express Entry, Australia 189, UAE Green Visa,
+> Germany Blue Card / Opportunity Card). `threshold_met` compares the normalised
+> salary to each scheme's floor; `flexible_visa=true` means a high-freedom (PR /
+> self-sponsored / portable) route applies. Occupation-eligibility gates are NOT
+> applied (no occupation classifier yet) — treat tags as "scheme available in
+> this country", not "you personally qualify". The `flexible_visa` / `visa_scheme`
+> filter columns refresh daily (`npm run visa-pathways:refresh`).
 
 **Examples:**
 

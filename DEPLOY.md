@@ -157,6 +157,13 @@ UTC (downloads the gov.uk register, tags every active GB employer). To populate
 immediately after deploy without waiting for the schedule, run once:
 `npm run sponsors:refresh` (add `-- --dry` to preview counts). No env/keys needed.
 
+**Visa-pathway tags (Task 9).** Migration `20260623110000_add_visa_pathways`
+adds `flexible_visa` + `visa_schemes` (auto-applied). The daily sponsor job
+(05:30 UTC) also recomputes these afterwards. To populate immediately, run
+`npm run visa-pathways:refresh` **after** `sponsors:refresh` (UK Scale-up /
+Skilled Worker pathways read the licence data). The API computes the rich
+`visa_pathways` array fresh on read; these columns only back the filters.
+
 ### Recruiter inbox setup (send + receive email)
 
 Two-way email with recruiters, managed at `/admin/inbox` (behind admin basic-auth).

@@ -10,6 +10,7 @@ import {
   excerpt,
 } from "@/lib/format";
 import { slugify } from "@/lib/slug";
+import { VisaPathwayBadge } from "./VisaPathwayBadge";
 
 /**
  * Text-rich, always-visible job row — the standard listing card across the
@@ -72,7 +73,7 @@ export function JobListItem({ job }: { job: Job }) {
         ) : null}
 
         {tags.length > 0 ? (
-          <ul className="mt-2 flex flex-wrap gap-1.5">
+          <ul className="mt-2 flex flex-wrap items-center gap-1.5">
             {tags.map((t) => (
               <li
                 key={t}
@@ -81,8 +82,15 @@ export function JobListItem({ job }: { job: Job }) {
                 {t}
               </li>
             ))}
+            <li className="relative z-10">
+              <VisaPathwayBadge job={job} />
+            </li>
           </ul>
-        ) : null}
+        ) : (
+          <div className="mt-2">
+            <VisaPathwayBadge job={job} />
+          </div>
+        )}
       </div>
 
       <time

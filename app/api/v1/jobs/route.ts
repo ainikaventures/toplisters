@@ -20,6 +20,7 @@ import {
 } from "@/lib/format";
 import { visaSponsorLabel, detectVisaSponsorshipDetail } from "@/lib/classify/visa";
 import { detectFitFlags } from "@/lib/classify/fitflags";
+import { computeVisaPathways } from "@/lib/classify/visa-pathways";
 import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -200,6 +201,16 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
   const sponsorRoute = sp.get("sponsor_route")?.trim() || null;
 
+  // Freedom-oriented visa-pathway filters (Task 9).
+  let flexibleVisaFilter: boolean | null = null;
+  const flexRaw = sp.get("flexible_visa");
+  if (flexRaw !== null) {
+    if (flexRaw === "true") flexibleVisaFilter = true;
+    else if (flexRaw === "false") flexibleVisaFilter = false;
+    else return err(400, "flexible_visa must be true|false", headers);
+  }
+  const visaScheme = sp.get("visa_scheme")?.trim() || null;
+
   const page = Math.max(1, Number.parseInt(sp.get("page") ?? "1", 10) || 1);
   const perPageRaw = Number.parseInt(sp.get("per_page") ?? "", 10);
   const perPage = Math.min(
@@ -235,6 +246,9 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (licensedFilter === true) cond.push(Prisma.sql`employer_licensed_sponsor = true`);
   if (licensedFilter === false) cond.push(Prisma.sql`employer_licensed_sponsor = false`);
   if (sponsorRoute) cond.push(Prisma.sql`${sponsorRoute} = ANY(sponsor_routes)`);
+  if (flexibleVisaFilter === true) cond.push(Prisma.sql`flexible_visa = true`);
+  if (flexibleVisaFilter === false) cond.push(Prisma.sql`flexible_visa = false`);
+  if (visaScheme) cond.push(Prisma.sql`${visaScheme} = ANY(visa_schemes)`);
   if (near && radiusMi != null) {
     // Haversine in SQL (no PostGIS dependency). Exclude ungeocoded/null-island rows.
     cond.push(Prisma.sql`(lat <> 0 OR lng <> 0)`);
@@ -278,6 +292,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     // pull the supporting sentence from the description as evidence.
     const visaDetail = detectVisaSponsorshipDetail(j.descriptionText);
     const visaAvailable = j.visaSponsorship ?? visaDetail.value;
+    const visaPathways = computeVisaPathways(j);
     const distance_mi =
       near && !(j.lat === 0 && j.lng === 0)
         ? Math.round(haversineMi(near.lat, near.lng, j.lat, j.lng) * 10) / 10
@@ -328,6 +343,11 @@ export async function GET(request: Request): Promise<NextResponse> {
       sponsorship_likely:
         j.employerLicensedSponsor === true &&
         visaSponsorLabel(j.visaSponsorship) !== "not_offered",
+      // Freedom-oriented visa pathways for the job's country (Task 9), computed
+      // fresh. flexible_visa = a high-freedom scheme applies (PR/self-sponsored/
+      // portable). threshold_met compares the normalised salary to the floor.
+      visa_pathways: visaPathways.pathways,
+      flexible_visa: visaPathways.flexible_visa,
       posted_at: j.postedDate ? j.postedDate.toISOString() : null,
       // Structured salary {min,max,currency,period} + a human display string.
       salary: hasSalary
