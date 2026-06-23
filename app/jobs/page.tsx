@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import type { $Enums } from "@/lib/generated/prisma/client";
-import { fetchJobs, fetchFacets, PAGE_SIZE, type JobFilters } from "./_data/query";
+import {
+  fetchJobs,
+  fetchFacets,
+  PAGE_SIZE,
+  type JobFilters,
+  type VisaSponsorFilter,
+} from "./_data/query";
 import { JobListItem } from "@/app/_components/JobListItem";
 import { JobsFilters } from "./_components/JobsFilters";
 import { Pagination } from "./_components/Pagination";
@@ -45,6 +51,7 @@ const COLLAR_VALUES = new Set<$Enums.CollarType>([
   "grey",
   "unknown",
 ]);
+const VISA_VALUES = new Set<VisaSponsorFilter>(["offered", "not_offered", "unknown"]);
 
 function pickEnum<T extends string>(
   value: string | string[] | undefined,
@@ -82,6 +89,7 @@ export default async function JobsPage({
     collarType: pickEnum<$Enums.CollarType>(params.collarType, COLLAR_VALUES),
     salaryMin: pickInt(params.salaryMin),
     salaryMax: pickInt(params.salaryMax),
+    visaSponsor: pickEnum<VisaSponsorFilter>(params.visaSponsor, VISA_VALUES),
   };
   const page = Math.max(1, pickInt(params.page) ?? 1);
 

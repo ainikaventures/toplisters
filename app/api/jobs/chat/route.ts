@@ -70,6 +70,7 @@ async function runSearch(args: Record<string, unknown>): Promise<{ cards: JobCar
     collarType: null,
     salaryMin: null,
     salaryMax: null,
+    visaSponsor: null,
   };
   // LLMs (esp. Llama) often return tool args as strings — coerce loosely.
   const str = (v: unknown) => (v == null ? "" : String(v).trim());

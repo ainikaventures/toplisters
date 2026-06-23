@@ -38,6 +38,7 @@ const EMPTY_FILTERS: JobFilters = {
   collarType: null,
   salaryMin: null,
   salaryMax: null,
+  visaSponsor: null,
 };
 
 export default async function Home() {
