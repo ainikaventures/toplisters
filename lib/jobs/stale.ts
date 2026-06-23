@@ -4,6 +4,10 @@ import { redis, QUEUE_NAMES } from "./queue";
 import { runDigest, type DigestStats } from "./digest";
 import { runSocialPosting, type RunStats as SocialRunStats } from "@/lib/social/runner";
 import { runSponsorRefresh, type SponsorRefreshStats } from "@/lib/sponsors/refresh";
+import {
+  recomputeVisaPathways,
+  type VisaPathwayRecomputeStats,
+} from "@/lib/jobs/recompute-visa-pathways";
 
 const STALE_DAYS = 30;
 
@@ -12,6 +16,7 @@ export interface MaintenanceJobResult {
   digest?: DigestStats;
   social?: SocialRunStats[];
   sponsors?: SponsorRefreshStats;
+  visaPathways?: VisaPathwayRecomputeStats;
   noop?: true;
 }
 
@@ -65,9 +70,12 @@ export function createMaintenanceWorker(): Worker<unknown, MaintenanceJobResult>
         case "refresh-sponsors": {
           // UK Register of Licensed Sponsors cross-reference (Task 8).
           // Network-bound (downloads ~142k rows); attempts/backoff cover a
-          // transient gov.uk hiccup.
-          const stats = await runSponsorRefresh();
-          return { sponsors: stats };
+          // transient gov.uk hiccup. Then recompute visa-pathway tags (Task 9)
+          // — UK Scale-up / Skilled Worker depend on the sponsor data we just
+          // wrote, so this must run after.
+          const sponsors = await runSponsorRefresh();
+          const visaPathways = await recomputeVisaPathways();
+          return { sponsors, visaPathways };
         }
         default:
           return { noop: true };

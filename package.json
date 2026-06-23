@@ -21,7 +21,8 @@
     "send-digests": "tsx scripts/send-digests.ts",
     "post-to-social": "tsx scripts/post-to-social.ts",
     "apikey": "tsx scripts/apikey.ts",
-    "sponsors:refresh": "tsx scripts/refresh-sponsors.ts"
+    "sponsors:refresh": "tsx scripts/refresh-sponsors.ts",
+    "visa-pathways:refresh": "tsx scripts/recompute-visa-pathways.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

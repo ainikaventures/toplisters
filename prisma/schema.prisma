@@ -97,6 +97,11 @@ model Job {
   sponsorRating           String?   @map("sponsor_rating")
   sponsorMatchConfidence  String?   @map("sponsor_match_confidence")
   sponsorCheckedAt        DateTime? @map("sponsor_checked_at")
+  // Freedom-oriented visa-pathway tags (Task 9) — derived from country + salary
+  // (+ UK sponsor data). Filter columns; the API also computes the rich array
+  // fresh on read. Refreshed daily by `npm run visa-pathways:refresh`.
+  flexibleVisa            Boolean   @default(false) @map("flexible_visa")
+  visaSchemes             String[]  @default([]) @map("visa_schemes")
   isUserSubmitted  Boolean          @default(false) @map("is_user_submitted")
   submittedByEmail String?          @map("submitted_by_email")
   moderationStatus ModerationStatus @default(approved) @map("moderation_status")
@@ -122,6 +127,7 @@ model Job {
   @@index([category, isActive])
   @@index([isActive, postedDate(sort: Desc)])
   @@index([employerLicensedSponsor, isActive])
+  @@index([flexibleVisa, isActive])
   @@index([isFeatured(sort: Desc), postedDate(sort: Desc)])
   @@index([lastSeenAt])
   @@map("jobs")
