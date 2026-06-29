@@ -188,13 +188,40 @@ function wikiTitle(url: string | undefined): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+const PHOTO_CACHE_KEY = "tl-f1-photos-v1";
+const PHOTO_TTL_MS = 24 * 60 * 60 * 1000;
+
+function readPhotoCache(): Record<string, string> | null {
+  try {
+    if (typeof localStorage === "undefined") return null;
+    const raw = localStorage.getItem(PHOTO_CACHE_KEY);
+    if (!raw) return null;
+    const { ts, map } = JSON.parse(raw) as { ts: number; map: Record<string, string> };
+    return Date.now() - ts < PHOTO_TTL_MS ? map : null;
+  } catch {
+    return null;
+  }
+}
+function writePhotoCache(map: Map<string, string>): void {
+  try {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(PHOTO_CACHE_KEY, JSON.stringify({ ts: Date.now(), map: Object.fromEntries(map) }));
+  } catch {
+    /* private mode / quota — non-fatal */
+  }
+}
+
 /**
  * One batched Wikipedia PageImages request → driverId → headshot URL. CORS-open
- * (origin=*). Best-effort: any failure just means no photos (the UI falls back).
+ * (origin=*). Cached in localStorage for 24h (photos rarely change). Best-effort:
+ * any failure just means no photos (the UI falls back to the code badge).
  */
 async function fetchDriverPhotos(
   entries: { id: string; title: string | null }[],
 ): Promise<Map<string, string>> {
+  const cached = readPhotoCache();
+  if (cached) return new Map(Object.entries(cached));
+
   const valid = entries.filter((e) => e.title) as { id: string; title: string }[];
   if (!valid.length) return new Map();
   const titles = encodeURIComponent(valid.map((e) => e.title).join("|"));
@@ -211,6 +238,7 @@ async function fetchDriverPhotos(
       const src = byTitle.get(e.title.replace(/_/g, " ").toLowerCase());
       if (src) out.set(e.id, src);
     }
+    writePhotoCache(out);
     return out;
   } catch {
     return new Map();
@@ -496,6 +524,12 @@ function simulate(
   }
 
   return drivers
-    .map((d, i) => ({ id: d.id, name: d.name, probability: wins[i] / SIMS }))
+    .map((d, i) => ({
+      id: d.id,
+      name: d.name,
+      probability: wins[i] / SIMS,
+      iso2: d.flag,
+      photoUrl: d.photoUrl,
+    }))
     .sort((a, b) => b.probability - a.probability);
 }

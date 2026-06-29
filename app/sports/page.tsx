@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { sportsSocial } from "@/lib/seo/og";
+import { fetchWcStandings, applyStandings } from "@/lib/sports/worldcup/standings";
+import { WC_TEAMS } from "@/lib/sports/worldcup/teams";
 
 export const metadata: Metadata = {
   title: "Sports — championships, mapped to the finish",
@@ -13,6 +15,9 @@ export const metadata: Metadata = {
     url: "/sports",
   }),
 };
+
+// Refresh the live WC status banner periodically.
+export const revalidate = 120;
 
 const SPORTS = [
   {
@@ -31,9 +36,30 @@ const SPORTS = [
   },
 ];
 
-export default function SportsLanding() {
+async function wcLiveStatus(): Promise<string | null> {
+  const teams = applyStandings(WC_TEAMS, await fetchWcStandings());
+  const maxPlayed = Math.max(0, ...teams.map((t) => t.played ?? 0));
+  if (maxPlayed === 0) return null;
+  return teams.every((t) => (t.played ?? 0) >= 3) ? "Knockouts underway" : "Group stage underway";
+}
+
+export default async function SportsLanding() {
+  const wcStatus = await wcLiveStatus();
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-16">
+      {wcStatus ? (
+        <Link
+          href="/world-cup"
+          className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm transition-colors hover:border-emerald-500/50"
+        >
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+            <span className="inline-block size-1.5 animate-pulse rounded-full bg-emerald-500" />
+            Live
+          </span>
+          <span className="font-medium">World Cup 2026 — {wcStatus}</span>
+          <span className="text-foreground/60">See the bracket &amp; live standings →</span>
+        </Link>
+      ) : null}
       <header className="max-w-2xl">
         <p className="text-xs font-medium uppercase tracking-widest text-foreground/50">
           Toplisters Sports

@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { worldCupEngine, groupTables, buildWcData } from "@/lib/sports/worldcup/engine";
+import { useEffect, useMemo, useState } from "react";
+import { worldCupEngine, groupTables, buildWcData, projectedBracket } from "@/lib/sports/worldcup/engine";
 import type { GroupRow } from "@/lib/sports/worldcup/engine";
 import type { WcTeam } from "@/lib/sports/worldcup/teams";
 import type { AnalysisResult } from "@/lib/sports/types";
 import { ResultPanel } from "./ResultPanel";
+import { Bracket } from "./Bracket";
 import { Flag } from "./Flag";
 
 const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
@@ -58,14 +59,54 @@ function tournamentStatus(teams: WcTeam[]) {
   return { stage, live, groupComplete, matchesPlayed, total: TOTAL_GROUP_MATCHES };
 }
 
-export function WorldCupApp({ teams: allTeams }: { teams: WcTeam[] }) {
+/** "just now" / "3m ago" for the last-updated label. */
+function agoLabel(updatedAt: number | null, now: number): string {
+  if (updatedAt == null) return "live";
+  const mins = Math.floor((now - updatedAt) / 60000);
+  if (mins <= 0) return "updated just now";
+  return `updated ${mins}m ago`;
+}
+
+export function WorldCupApp({ teams: initialTeams }: { teams: WcTeam[] }) {
+  const [allTeams, setAllTeams] = useState<WcTeam[]>(initialTeams);
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [analysing, setAnalysing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(0);
+
+  // Poll live standings every 90s so the table + bracket stay current without a
+  // reload; tick `now` every 30s to keep the "updated Xm ago" label fresh.
+  useEffect(() => {
+    setUpdatedAt(Date.now());
+    setNow(Date.now());
+    let cancelled = false;
+    async function refresh() {
+      try {
+        const res = await fetch("/api/sports/wc-standings");
+        if (!res.ok) return;
+        const data = (await res.json()) as { teams?: WcTeam[] };
+        if (!cancelled && Array.isArray(data.teams) && data.teams.length) {
+          setAllTeams(data.teams);
+          setUpdatedAt(Date.now());
+        }
+      } catch {
+        /* keep the last good data */
+      }
+    }
+    const poll = setInterval(refresh, 90_000);
+    const ticker = setInterval(() => setNow(Date.now()), 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(poll);
+      clearInterval(ticker);
+    };
+  }, []);
 
   const data = useMemo(() => buildWcData(allTeams), [allTeams]);
   const tables = useMemo(() => groupTables(data), [data]);
   const status = useMemo(() => tournamentStatus(allTeams), [allTeams]);
+  const bracket = useMemo(() => projectedBracket(data), [data]);
 
   function pick(code: string) {
     setPickedId(code);
@@ -97,6 +138,7 @@ export function WorldCupApp({ teams: allTeams }: { teams: WcTeam[] }) {
               {status.live && !status.groupComplete
                 ? ` · ${status.matchesPlayed}/${status.total} group matches played`
                 : ""}
+              {status.live ? ` · ${agoLabel(updatedAt, now)}` : ""}
             </p>
           </div>
           <span className="text-xs text-foreground/50">
@@ -147,6 +189,8 @@ export function WorldCupApp({ teams: allTeams }: { teams: WcTeam[] }) {
           )}
         </section>
       </div>
+
+      <Bracket rounds={bracket} />
     </div>
   );
 }

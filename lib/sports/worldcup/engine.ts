@@ -259,6 +259,49 @@ export function groupTables(data: WcData): Record<string, GroupRow[]> {
   return out;
 }
 
+export interface BracketMatch {
+  a: WcTeam | null;
+  b: WcTeam | null;
+  winner: WcTeam | null;
+  /** Winner's projected probability of advancing this tie, 0..1. */
+  prob: number;
+}
+export interface BracketRound {
+  label: string;
+  matches: BracketMatch[];
+}
+
+/**
+ * Deterministic projected knockout bracket: seed the 32 qualifiers, then
+ * advance the favourite (higher single-tie win prob) each round to the final.
+ * The most-likely bracket — companion to the per-team Monte-Carlo odds.
+ */
+export function projectedBracket(data: WcData): BracketRound[] {
+  let alive = seedBracket(deterministicQualifiers(data));
+  const rounds: BracketRound[] = [];
+  for (let r = 0; r < ROUND_LABELS.length && alive.length > 1; r++) {
+    const matches: BracketMatch[] = [];
+    const next: WcTeam[] = [];
+    for (let i = 0; i < alive.length; i += 2) {
+      const a = alive[i] ?? null;
+      const b = alive[i + 1] ?? null;
+      if (a && b) {
+        const pa = matchWinProb(a, b);
+        const winner = pa >= 0.5 ? a : b;
+        next.push(winner);
+        matches.push({ a, b, winner, prob: pa >= 0.5 ? pa : 1 - pa });
+      } else {
+        const w = a ?? b;
+        if (w) next.push(w);
+        matches.push({ a, b, winner: w, prob: 1 });
+      }
+    }
+    rounds.push({ label: ROUND_LABELS[r], matches });
+    alive = next;
+  }
+  return rounds;
+}
+
 function projectPath(
   data: WcData,
   target: WcTeam,
@@ -375,6 +418,6 @@ function simulate(data: WcData): ProbabilityEntry[] {
   }
 
   return data.teams
-    .map((t) => ({ id: t.code, name: t.name, probability: (wins.get(t.code) ?? 0) / SIMS }))
+    .map((t) => ({ id: t.code, name: t.name, probability: (wins.get(t.code) ?? 0) / SIMS, iso2: t.iso2 }))
     .sort((a, b) => b.probability - a.probability);
 }
