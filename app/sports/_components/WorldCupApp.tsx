@@ -2,26 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { worldCupEngine, groupTables, buildWcData } from "@/lib/sports/worldcup/engine";
+import type { GroupRow } from "@/lib/sports/worldcup/engine";
 import type { WcTeam } from "@/lib/sports/worldcup/teams";
 import type { AnalysisResult } from "@/lib/sports/types";
 import { ResultPanel } from "./ResultPanel";
+import { Flag } from "./Flag";
 
 const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
-
-function Flag({ iso2 }: { iso2: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={`https://flagcdn.com/w40/${iso2}.png`}
-      srcSet={`https://flagcdn.com/w80/${iso2}.png 2x`}
-      alt=""
-      width={22}
-      height={16}
-      loading="lazy"
-      className="h-4 w-[22px] shrink-0 rounded-[2px] object-cover ring-1 ring-foreground/10"
-    />
-  );
-}
 
 interface StatRow {
   team: WcTeam;
@@ -29,8 +16,6 @@ interface StatRow {
   w: number;
   d: number;
   l: number;
-  gf: number;
-  ga: number;
   gd: number;
   pts: number;
   qualifies: boolean;
@@ -47,34 +32,40 @@ function statRows(teams: WcTeam[]): StatRow[] | null {
       const l = team.lost ?? 0;
       const gf = team.gf ?? 0;
       const ga = team.ga ?? 0;
-      return {
-        team,
-        p: team.played ?? w + d + l,
-        w,
-        d,
-        l,
-        gf,
-        ga,
-        gd: gf - ga,
-        pts: team.result ?? w * 3 + d,
-      };
+      return { team, p: team.played ?? w + d + l, w, d, l, gd: gf - ga, pts: team.result ?? w * 3 + d };
     })
-    .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || b.team.elo - a.team.elo)
+    .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.team.elo - a.team.elo)
     .map((r, i) => ({ ...r, qualifies: i < 2, third: i === 2 }));
 }
 
-function dot(qualifies: boolean, third: boolean) {
+function dotClass(qualifies: boolean, third: boolean) {
   return qualifies ? "bg-emerald-500" : third ? "bg-amber-400" : "bg-foreground/20";
 }
 
+/** Tournament-wide state from the live team data. */
+function tournamentStatus(teams: WcTeam[]) {
+  const maxPlayed = Math.max(0, ...teams.map((t) => t.played ?? 0));
+  const matchesPlayed = Math.round(teams.reduce((s, t) => s + (t.played ?? 0), 0) / 2);
+  const groupComplete = teams.length > 0 && teams.every((t) => (t.played ?? 0) >= 3);
+  const TOTAL_GROUP_MATCHES = 72; // 12 groups × 6
+  const stage =
+    maxPlayed === 0
+      ? "Group stage kicks off soon"
+      : groupComplete
+        ? "Group stage complete — into the knockouts"
+        : "Group stage in progress";
+  const live = maxPlayed > 0;
+  return { stage, live, groupComplete, matchesPlayed, total: TOTAL_GROUP_MATCHES };
+}
+
 export function WorldCupApp({ teams: allTeams }: { teams: WcTeam[] }) {
-  const [group, setGroup] = useState("A");
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [analysing, setAnalysing] = useState(false);
 
   const data = useMemo(() => buildWcData(allTeams), [allTeams]);
   const tables = useMemo(() => groupTables(data), [data]);
+  const status = useMemo(() => tournamentStatus(allTeams), [allTeams]);
 
   function pick(code: string) {
     setPickedId(code);
@@ -86,16 +77,28 @@ export function WorldCupApp({ teams: allTeams }: { teams: WcTeam[] }) {
     }, 20);
   }
 
-  const teams = data.groups[group] ?? [];
-  const stats = statRows(teams);
-  const projection = tables[group] ?? [];
-
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,460px)_1fr]">
-      {/* Left: group selector + the active group's table */}
-      <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">Pick a nation</h2>
+    <div className="flex flex-col gap-8">
+      {/* Where the tournament stands now */}
+      <section className="rounded-xl border border-foreground/10 bg-muted/30 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              {status.live ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                  <span className="inline-block size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  Live
+                </span>
+              ) : null}
+              <h2 className="text-lg font-semibold tracking-tight">{status.stage}</h2>
+            </div>
+            <p className="mt-1 text-xs text-foreground/55">
+              USA · Canada · Mexico · 11 Jun – 19 Jul 2026
+              {status.live && !status.groupComplete
+                ? ` · ${status.matchesPlayed}/${status.total} group matches played`
+                : ""}
+            </p>
+          </div>
           <span className="text-xs text-foreground/50">
             <span className="mr-2">
               <span className="mr-1 inline-block size-1.5 rounded-full bg-emerald-500 align-middle" />
@@ -107,139 +110,94 @@ export function WorldCupApp({ teams: allTeams }: { teams: WcTeam[] }) {
             </span>
           </span>
         </div>
-
-        {/* Group tabs A–L */}
-        <div className="mb-3 flex gap-1 overflow-x-auto pb-1">
-          {GROUPS.map((g) => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => setGroup(g)}
-              className={`size-8 shrink-0 rounded-md text-xs font-semibold transition-colors ${
-                g === group
-                  ? "bg-foreground text-background"
-                  : "border border-foreground/15 text-foreground/60 hover:border-foreground/40"
-              }`}
-            >
-              {g}
-            </button>
-          ))}
-        </div>
-
-        <div className="overflow-hidden rounded-xl border border-foreground/10">
-          {/* Header row */}
-          <div className="flex items-center gap-2 border-b border-foreground/10 bg-muted/40 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-foreground/50">
-            <span className="w-4 shrink-0" />
-            <span className="flex-1">Group {group}</span>
-            {stats ? (
-              <span className="flex shrink-0 gap-2 tabular-nums">
-                <span className="w-5 text-right">P</span>
-                <span className="w-5 text-right">W</span>
-                <span className="w-5 text-right">D</span>
-                <span className="w-5 text-right">L</span>
-                <span className="w-8 text-right">GD</span>
-                <span className="w-6 text-right">Pts</span>
-              </span>
-            ) : (
-              <span className="flex shrink-0 gap-3">
-                <span className="w-10 text-right">Elo</span>
-                <span className="w-14 text-right">Proj pts</span>
-              </span>
-            )}
-          </div>
-
-          <ul>
-            {stats
-              ? stats.map((r) => (
-                  <Row
-                    key={r.team.code}
-                    team={r.team}
-                    picked={pickedId === r.team.code}
-                    qualifies={r.qualifies}
-                    third={r.third}
-                    onPick={pick}
-                  >
-                    <span className="flex shrink-0 gap-2 tabular-nums text-foreground/70">
-                      <span className="w-5 text-right">{r.p}</span>
-                      <span className="w-5 text-right">{r.w}</span>
-                      <span className="w-5 text-right">{r.d}</span>
-                      <span className="w-5 text-right">{r.l}</span>
-                      <span className="w-8 text-right">{r.gd > 0 ? `+${r.gd}` : r.gd}</span>
-                      <span className="w-6 text-right font-semibold text-foreground">{r.pts}</span>
-                    </span>
-                  </Row>
-                ))
-              : projection.map((r) => (
-                  <Row
-                    key={r.team.code}
-                    team={r.team}
-                    picked={pickedId === r.team.code}
-                    qualifies={r.qualifies}
-                    third={r.thirdPlace}
-                    onPick={pick}
-                  >
-                    <span className="flex shrink-0 gap-3 tabular-nums">
-                      <span className="w-10 text-right text-foreground/45">{r.team.elo}</span>
-                      <span className="w-14 text-right font-semibold">{r.points.toFixed(1)}</span>
-                    </span>
-                  </Row>
-                ))}
-          </ul>
-        </div>
-        <p className="mt-2 text-xs text-foreground/45">
-          {stats
-            ? "Live group standings."
-            : "Elo = team strength rating · Proj pts = model-projected group points. Real P/W/D/L/GF/GA appear once results are entered."}
-        </p>
       </section>
 
-      {/* Right: analysis */}
-      <section>
-        {analysing ? (
-          <div className="rounded-xl border border-foreground/10 p-6 text-sm text-foreground/50">
-            Running 5,000 tournament simulations…
+      <div className="grid gap-8 xl:grid-cols-[1fr_minmax(0,400px)]">
+        {/* All 12 groups — the current standings, every team clickable */}
+        <section>
+          <h3 className="mb-3 text-sm font-semibold">
+            {status.live ? "Group standings" : "Groups"} — tap a nation for their path to the trophy
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {GROUPS.map((g) => (
+              <GroupCard
+                key={g}
+                group={g}
+                teams={data.groups[g] ?? []}
+                projection={tables[g] ?? []}
+                pickedId={pickedId}
+                onPick={pick}
+              />
+            ))}
           </div>
-        ) : result ? (
-          <ResultPanel result={result} />
-        ) : (
-          <div className="rounded-xl border border-dashed border-foreground/15 p-8 text-center text-sm text-foreground/50">
-            Pick a nation to see their projected path to the trophy.
-          </div>
-        )}
-      </section>
+        </section>
+
+        {/* Analysis — sticky alongside on wide screens */}
+        <section className="xl:sticky xl:top-6 xl:self-start">
+          {analysing ? (
+            <div className="rounded-xl border border-foreground/10 p-6 text-sm text-foreground/50">
+              Running 5,000 tournament simulations…
+            </div>
+          ) : result ? (
+            <ResultPanel result={result} />
+          ) : (
+            <div className="rounded-xl border border-dashed border-foreground/15 p-8 text-center text-sm text-foreground/50">
+              Pick a nation to see their projected path to the trophy.
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
 
-function Row({
-  team,
-  picked,
-  qualifies,
-  third,
+function GroupCard({
+  group,
+  teams,
+  projection,
+  pickedId,
   onPick,
-  children,
 }: {
-  team: WcTeam;
-  picked: boolean;
-  qualifies: boolean;
-  third: boolean;
+  group: string;
+  teams: WcTeam[];
+  projection: GroupRow[];
+  pickedId: string | null;
   onPick: (code: string) => void;
-  children: React.ReactNode;
 }) {
+  const stats = statRows(teams);
+  const rows = stats
+    ? stats.map((r) => ({ team: r.team, qualifies: r.qualifies, third: r.third, value: String(r.pts) }))
+    : projection.map((r) => ({
+        team: r.team,
+        qualifies: r.qualifies,
+        third: r.thirdPlace,
+        value: r.points.toFixed(1),
+      }));
+
   return (
-    <li className="border-t border-foreground/5 first:border-t-0">
-      <button
-        type="button"
-        onClick={() => onPick(team.code)}
-        className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60 ${
-          picked ? "bg-muted" : ""
-        }`}
-      >
-        <span className={`inline-block size-1.5 shrink-0 rounded-full ${dot(qualifies, third)}`} />
-        <Flag iso2={team.iso2} />
-        <span className="min-w-0 flex-1 truncate">{team.name}</span>
-        {children}
-      </button>
-    </li>
+    <div className="overflow-hidden rounded-xl border border-foreground/10">
+      <div className="flex items-center justify-between border-b border-foreground/10 bg-muted/40 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-foreground/50">
+        <span>Group {group}</span>
+        <span>{stats ? "Pts" : "Proj"}</span>
+      </div>
+      <ul>
+        {rows.map((r) => (
+          <li key={r.team.code} className="border-t border-foreground/5 first:border-t-0">
+            <button
+              type="button"
+              onClick={() => onPick(r.team.code)}
+              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors hover:bg-muted/60 ${
+                pickedId === r.team.code ? "bg-muted" : ""
+              }`}
+            >
+              <span className={`inline-block size-1.5 shrink-0 rounded-full ${dotClass(r.qualifies, r.third)}`} />
+              <Flag iso2={r.team.iso2} />
+              <span className="min-w-0 flex-1 truncate">{r.team.name}</span>
+              <span className="shrink-0 tabular-nums font-semibold text-foreground/80">{r.value}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

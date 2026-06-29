@@ -11,6 +11,7 @@ import {
   racePoints,
   sprintPoints,
 } from "./points";
+import { demonymToIso2 } from "../flags";
 
 /**
  * Formula 1 engine — the clean core. Live data from Jolpica-F1 (the free
@@ -38,6 +39,11 @@ export interface F1Driver {
   name: string;
   code: string;
   constructor: string;
+  nationality: string;
+  /** ISO2 (lowercase) for the flag, or null if the demonym isn't mapped. */
+  flag: string | null;
+  /** Headshot from Wikipedia, or null when unavailable. */
+  photoUrl: string | null;
   points: number;
   wins: number;
   position: number;
@@ -47,6 +53,15 @@ export interface F1Driver {
   recentPpr: number;
 }
 
+export interface F1Constructor {
+  name: string;
+  nationality: string;
+  flag: string | null;
+  points: number;
+  wins: number;
+  position: number;
+}
+
 export interface F1Data {
   season: string;
   lastRound: number;
@@ -54,6 +69,7 @@ export interface F1Data {
   remainingRaces: number;
   remainingSprints: number;
   drivers: F1Driver[];
+  constructors: F1Constructor[];
 }
 
 // ─── Jolpica response shapes (only the bits we read) ───────────────────────
@@ -67,12 +83,38 @@ interface StandingsResponse {
           position?: string;
           points?: string;
           wins?: string;
-          Driver?: { driverId?: string; givenName?: string; familyName?: string; code?: string };
+          Driver?: {
+            driverId?: string;
+            givenName?: string;
+            familyName?: string;
+            code?: string;
+            nationality?: string;
+            url?: string;
+          };
           Constructors?: Array<{ name?: string }>;
         }>;
       }>;
     };
   };
+}
+
+interface ConstructorStandingsResponse {
+  MRData?: {
+    StandingsTable?: {
+      StandingsLists?: Array<{
+        ConstructorStandings?: Array<{
+          position?: string;
+          points?: string;
+          wins?: string;
+          Constructor?: { name?: string; nationality?: string };
+        }>;
+      }>;
+    };
+  };
+}
+
+interface WikiResponse {
+  query?: { pages?: Record<string, { title?: string; thumbnail?: { source?: string } }> };
 }
 
 interface ScheduleResponse {
@@ -140,6 +182,41 @@ async function getJson<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** Wikipedia article title from an Ergast Driver.url. */
+function wikiTitle(url: string | undefined): string | null {
+  const m = url?.match(/\/wiki\/(.+)$/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+/**
+ * One batched Wikipedia PageImages request → driverId → headshot URL. CORS-open
+ * (origin=*). Best-effort: any failure just means no photos (the UI falls back).
+ */
+async function fetchDriverPhotos(
+  entries: { id: string; title: string | null }[],
+): Promise<Map<string, string>> {
+  const valid = entries.filter((e) => e.title) as { id: string; title: string }[];
+  if (!valid.length) return new Map();
+  const titles = encodeURIComponent(valid.map((e) => e.title).join("|"));
+  try {
+    const json = await getJson<WikiResponse>(
+      `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=200&redirects=1&origin=*&titles=${titles}`,
+    );
+    const byTitle = new Map<string, string>();
+    for (const page of Object.values(json.query?.pages ?? {})) {
+      if (page.title && page.thumbnail?.source) byTitle.set(page.title.toLowerCase(), page.thumbnail.source);
+    }
+    const out = new Map<string, string>();
+    for (const e of valid) {
+      const src = byTitle.get(e.title.replace(/_/g, " ").toLowerCase());
+      if (src) out.set(e.id, src);
+    }
+    return out;
+  } catch {
+    return new Map();
+  }
+}
+
 /** -ln(-ln(U)) — a standard Gumbel(0,1) draw. */
 function gumbel(): number {
   const u = Math.random();
@@ -171,12 +248,15 @@ export const f1Engine: SportEngine<F1Data> = {
   sport: "f1",
 
   async load(): Promise<F1Data> {
-    const [standings, schedule, results] = await Promise.all([
+    const [standings, schedule, results, constructorStandings] = await Promise.all([
       getJson<StandingsResponse>(`${BASE}/current/driverstandings/?limit=100`),
       getJson<ScheduleResponse>(`${BASE}/current/?limit=100`),
       // Every race result this season → per-driver reliability + recent form.
       // Tolerate failure: the model falls back to season pace + a default DNF.
       getJson<ResultsResponse>(`${BASE}/current/results/?limit=2000`).catch(() => ({}) as ResultsResponse),
+      getJson<ConstructorStandingsResponse>(`${BASE}/current/constructorstandings/?limit=100`).catch(
+        () => ({}) as ConstructorStandingsResponse,
+      ),
     ]);
 
     const list = standings.MRData?.StandingsTable?.StandingsLists?.[0];
@@ -184,19 +264,45 @@ export const f1Engine: SportEngine<F1Data> = {
     const lastRound = Number.parseInt(list?.round ?? "0", 10) || 0;
     const form = computeForm(results, lastRound);
 
-    const drivers: F1Driver[] = (list?.DriverStandings ?? []).map((d) => {
+    const rawDrivers = list?.DriverStandings ?? [];
+    const photos = await fetchDriverPhotos(
+      rawDrivers.map((d) => ({
+        id: d.Driver?.driverId ?? `${d.Driver?.familyName ?? "driver"}`.toLowerCase(),
+        title: wikiTitle(d.Driver?.url),
+      })),
+    );
+
+    const drivers: F1Driver[] = rawDrivers.map((d) => {
       const id = d.Driver?.driverId ?? `${d.Driver?.familyName ?? "driver"}`.toLowerCase();
       const f = form.get(id);
+      const nationality = d.Driver?.nationality ?? "";
       return {
         id,
         name: `${d.Driver?.givenName ?? ""} ${d.Driver?.familyName ?? ""}`.trim(),
         code: d.Driver?.code ?? (d.Driver?.familyName ?? "").slice(0, 3).toUpperCase(),
         constructor: d.Constructors?.[0]?.name ?? "—",
+        nationality,
+        flag: demonymToIso2(nationality),
+        photoUrl: photos.get(id) ?? null,
         points: Number.parseFloat(d.points ?? "0") || 0,
         wins: Number.parseInt(d.wins ?? "0", 10) || 0,
         position: Number.parseInt(d.position ?? "0", 10) || 0,
         dnfRate: f?.dnfRate ?? 0.1,
         recentPpr: f?.recentPpr ?? 0,
+      };
+    });
+
+    const constructors: F1Constructor[] = (
+      constructorStandings.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings ?? []
+    ).map((c) => {
+      const nationality = c.Constructor?.nationality ?? "";
+      return {
+        name: c.Constructor?.name ?? "—",
+        nationality,
+        flag: demonymToIso2(nationality),
+        points: Number.parseFloat(c.points ?? "0") || 0,
+        wins: Number.parseInt(c.wins ?? "0", 10) || 0,
+        position: Number.parseInt(c.position ?? "0", 10) || 0,
       };
     });
 
@@ -212,6 +318,7 @@ export const f1Engine: SportEngine<F1Data> = {
       remainingRaces,
       remainingSprints,
       drivers,
+      constructors,
     };
   },
 

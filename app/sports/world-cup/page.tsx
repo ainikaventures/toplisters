@@ -24,7 +24,7 @@ export default async function WorldCupPage() {
   const teams = applyStandings(WC_TEAMS, overlay);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-6 py-10">
+    <div className="mx-auto w-full max-w-6xl px-6 py-10">
       <header className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">World Cup 2026 title chances</h1>
         <p className="mt-2 text-sm text-foreground/60">
