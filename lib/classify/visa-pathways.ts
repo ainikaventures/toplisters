@@ -109,6 +109,40 @@ const COUNTRY_SCHEMES: Record<string, SchemeDef[]> = {
       blurb: "enter to job-hunt",
     },
   ],
+  NL: [
+    {
+      name: "Highly Skilled Migrant",
+      country: "Netherlands",
+      freedom: "medium",
+      blurb: "sponsor-tied, fast settlement",
+      threshold: { amount: 66000, currency: "EUR" }, // ~30+ salary criterion
+    },
+  ],
+  SG: [
+    {
+      name: "Employment Pass",
+      country: "Singapore",
+      freedom: "medium",
+      blurb: "tied to employer",
+      threshold: { amount: 67200, currency: "SGD" }, // ~S$5,600/mo general floor
+    },
+    {
+      name: "Tech.Pass",
+      country: "Singapore",
+      freedom: "high",
+      blurb: "self-sponsored, 2-yr",
+      threshold: { amount: 240000, currency: "SGD" }, // ~S$20k/mo route
+    },
+  ],
+  NZ: [
+    {
+      name: "Skilled Migrant (Residence)",
+      country: "New Zealand",
+      freedom: "high",
+      blurb: "PR, points-based, no single employer",
+      threshold: { amount: 66000, currency: "NZD" },
+    },
+  ],
 };
 
 export interface VisaPathway {
