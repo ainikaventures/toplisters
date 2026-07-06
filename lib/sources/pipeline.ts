@@ -61,14 +61,21 @@ async function processJob(
   now: Date,
   stats: RunStats,
 ): Promise<void> {
-  const geo = await geocode(job.locationText);
+  let geo = await geocode(job.locationText);
 
-  // Pure-worldwide remotes with no resolvable country are skipped here
-  // rather than pinned to (0, 0); a "worldwide" globe overlay will pick
-  // them up in a later step.
+  // No resolvable country. If the role is clearly remote/worldwide, keep it
+  // (country ZZ, no coordinates) rather than dropping it — recovering a whole
+  // class of remote jobs the pipeline used to discard. Truly unparseable
+  // non-remote locations are still skipped as likely bad data.
   if (!geo) {
-    stats.skippedNoLocation++;
-    return;
+    const isRemote =
+      job.workMode === "remote" ||
+      /\b(remote|worldwide|anywhere|distributed|global)\b/i.test(job.locationText);
+    if (!isRemote) {
+      stats.skippedNoLocation++;
+      return;
+    }
+    geo = { countryCode: null, region: null, city: null, lat: 0, lng: 0 };
   }
 
   // Logo fallback: if the source didn't ship a logo URL (RemoteOK no longer
