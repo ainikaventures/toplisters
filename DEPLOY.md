@@ -161,7 +161,10 @@ immediately after deploy without waiting for the schedule, run once:
 `20260630100000_add_employer_ats_sources` adds `employer_ats_sources`. Grow it
 with `npm run discover-ats -- "Company A, Company B" --save` — the direct-ATS
 adapters (Greenhouse/Lever/Ashby/SmartRecruiters/Workday) then ingest those
-boards automatically, no code change. Track progress toward dropping aggregators
+boards automatically, no code change. To grow it **country by country, weakest
+first**, run `npm run discover-country auto` — it takes the companies we only
+get via aggregators in the least-covered countries and finds their direct
+boards. (`… auto --countries 8`, or `… GB,IE,SG` for specific ones.) Track progress toward dropping aggregators
 with `npm run direct-coverage` (direct-vs-aggregator share by country; ≥60% =
 cut-ready). Pipeline precedence already prefers the direct link over an
 aggregator wrapper.
