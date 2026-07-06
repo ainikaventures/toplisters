@@ -1,6 +1,7 @@
 import type { JobSource, NormalizedJob } from "./types";
 import type { $Enums } from "@/lib/generated/prisma/client";
 import { cleanHtml, htmlToPlainText } from "./utils";
+import { registrySlugs } from "./ats-registry";
 
 const USER_AGENT = "Toplisters/1.0 (+https://toplisters.xyz)";
 const REQUEST_GAP_MS = 250;
@@ -133,7 +134,8 @@ class GreenhouseSource implements JobSource {
 
   async fetch(): Promise<unknown> {
     const items: FetchedItem[] = [];
-    for (const slug of configuredCompanies()) {
+    const slugs = [...new Set([...configuredCompanies(), ...(await registrySlugs("greenhouse"))])];
+    for (const slug of slugs) {
       try {
         const response = await fetch(
           `https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`,

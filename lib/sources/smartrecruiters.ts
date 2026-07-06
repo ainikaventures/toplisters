@@ -1,6 +1,7 @@
 import type { JobSource, NormalizedJob } from "./types";
 import type { $Enums } from "@/lib/generated/prisma/client";
 import { cleanHtml, htmlToPlainText } from "./utils";
+import { registrySlugs } from "./ats-registry";
 
 /**
  * SmartRecruiters — public, unauthenticated postings API per company.
@@ -106,7 +107,8 @@ class SmartRecruitersSource implements JobSource {
 
   async fetch(): Promise<unknown> {
     const items: FetchedItem[] = [];
-    for (const company of configuredCompanies()) {
+    const companies = [...new Set([...configuredCompanies(), ...(await registrySlugs("smartrecruiters"))])];
+    for (const company of companies) {
       try {
         const listRes = await fetch(
           `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(company)}/postings?limit=100`,

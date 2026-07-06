@@ -10,6 +10,9 @@
  * Usage:
  *   npm run discover-ats -- "Freshworks, Postman, Razorpay, Swiggy"
  *   npm run discover-ats            # runs the built-in India seed list
+ *   npm run discover-ats -- "…" --save   # persist verified boards to the
+ *                                         # employer_ats_sources registry so
+ *                                         # the adapters ingest them directly
  *
  * NOTE: this only finds employers on the ATS platforms we ingest. Firms on
  * custom/self-hosted portals (e.g. TCS/Infosys/Wipro) aren't discoverable here
@@ -99,19 +102,43 @@ async function probe(company: string): Promise<Hit | null> {
 }
 
 (async () => {
-  const arg = process.argv.slice(2).join(" ").trim();
+  const save = process.argv.includes("--save");
+  const arg = process.argv
+    .slice(2)
+    .filter((a) => !a.startsWith("--"))
+    .join(" ")
+    .trim();
   const companies = arg ? arg.split(",").map((c) => c.trim()).filter(Boolean) : SEED;
 
   const byAts: Record<string, string[]> = {};
-  console.log(`Probing ${companies.length} companies…\n`);
+  let saved = 0;
+  console.log(`Probing ${companies.length} companies…${save ? " (saving to registry)" : ""}\n`);
   for (const c of companies) {
     const hit = await probe(c);
     if (hit) {
       (byAts[hit.ats] ??= []).push(hit.slug);
       console.log(`  ${c.padEnd(16)} → ${hit.ats}:${hit.slug} (${hit.count} jobs, ${hit.confidence})`);
+      if (save) {
+        const { saveAtsSource } = await import("../lib/sources/ats-registry");
+        const { normalizeCompany } = await import("../lib/companies/rebuild");
+        await saveAtsSource({
+          platform: hit.ats as "greenhouse" | "lever" | "ashby" | "smartrecruiters",
+          slug: hit.slug,
+          companyName: c,
+          normalizedName: normalizeCompany(c),
+          confidence: hit.confidence,
+          jobCount: hit.count,
+        });
+        saved++;
+      }
     } else {
       console.log(`  ${c.padEnd(16)} → — (not on a supported ATS / custom portal)`);
     }
+  }
+  if (save) {
+    const { prisma } = await import("../lib/db");
+    await prisma.$disconnect();
+    console.log(`\nSaved ${saved} boards to the registry.`);
   }
 
   const ENV: Record<string, string> = {

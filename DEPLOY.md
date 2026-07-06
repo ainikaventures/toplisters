@@ -157,6 +157,15 @@ UTC (downloads the gov.uk register, tags every active GB employer). To populate
 immediately after deploy without waiting for the schedule, run once:
 `npm run sponsors:refresh` (add `-- --dry` to preview counts). No env/keys needed.
 
+**Employer→ATS registry (direct-pull backbone).** Migration
+`20260630100000_add_employer_ats_sources` adds `employer_ats_sources`. Grow it
+with `npm run discover-ats -- "Company A, Company B" --save` — the direct-ATS
+adapters (Greenhouse/Lever/Ashby/SmartRecruiters/Workday) then ingest those
+boards automatically, no code change. Track progress toward dropping aggregators
+with `npm run direct-coverage` (direct-vs-aggregator share by country; ≥60% =
+cut-ready). Pipeline precedence already prefers the direct link over an
+aggregator wrapper.
+
 **Company directory.** Migration `20260630000000_add_companies` adds the
 `companies` table (auto-applied). The worker rebuilds it daily at 04:30 UTC from
 active jobs; to populate immediately after an aggregation cycle, run
