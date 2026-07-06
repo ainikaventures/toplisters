@@ -157,6 +157,11 @@ UTC (downloads the gov.uk register, tags every active GB employer). To populate
 immediately after deploy without waiting for the schedule, run once:
 `npm run sponsors:refresh` (add `-- --dry` to preview counts). No env/keys needed.
 
+**Company directory.** Migration `20260630000000_add_companies` adds the
+`companies` table (auto-applied). The worker rebuilds it daily at 04:30 UTC from
+active jobs; to populate immediately after an aggregation cycle, run
+`npm run rebuild-companies`. Pages: `/companies` + `/company/<slug>`.
+
 **Visa-pathway tags (Task 9).** Migration `20260623110000_add_visa_pathways`
 adds `flexible_visa` + `visa_schemes` (auto-applied). The daily sponsor job
 (05:30 UTC) also recomputes these afterwards. To populate immediately, run

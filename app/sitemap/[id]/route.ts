@@ -63,6 +63,7 @@ async function metaShard(): Promise<SitemapUrl[]> {
     { loc: `${SITE_URL}/`, lastmod: now, changefreq: "daily", priority: 1.0 },
     { loc: `${SITE_URL}/jobs`, lastmod: now, changefreq: "daily", priority: 0.9 },
     { loc: `${SITE_URL}/globe`, lastmod: now, changefreq: "daily", priority: 0.7 },
+    { loc: `${SITE_URL}/companies`, lastmod: now, changefreq: "daily", priority: 0.6 },
     { loc: `${SITE_URL}/about`, lastmod: now, changefreq: "yearly", priority: 0.4 },
     { loc: `${SITE_URL}/contact`, lastmod: now, changefreq: "yearly", priority: 0.4 },
     { loc: `${SITE_URL}/privacy`, lastmod: now, changefreq: "yearly", priority: 0.3 },

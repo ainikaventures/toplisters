@@ -8,6 +8,7 @@ import {
   recomputeVisaPathways,
   type VisaPathwayRecomputeStats,
 } from "@/lib/jobs/recompute-visa-pathways";
+import { rebuildCompanies, type CompanyRebuildStats } from "@/lib/companies/rebuild";
 
 const STALE_DAYS = 30;
 
@@ -17,6 +18,7 @@ export interface MaintenanceJobResult {
   social?: SocialRunStats[];
   sponsors?: SponsorRefreshStats;
   visaPathways?: VisaPathwayRecomputeStats;
+  companies?: CompanyRebuildStats;
   noop?: true;
 }
 
@@ -53,6 +55,11 @@ export function createMaintenanceWorker(): Worker<unknown, MaintenanceJobResult>
             data: { isActive: false },
           });
           return { deactivated: result.count };
+        }
+        case "rebuild-companies": {
+          // Company directory aggregated from active jobs.
+          const companies = await rebuildCompanies();
+          return { companies };
         }
         case "send-digests": {
           // Per-subscriber digest emails. Internally throttled so a

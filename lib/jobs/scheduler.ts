@@ -96,6 +96,15 @@ export async function registerSchedules(): Promise<void> {
   );
   summary.push({ id: "maintenance:post-to-social", everyMin: 8 * 60 });
 
+  // Daily company-directory rebuild at 04:30 UTC (after the stale sweep, so it
+  // aggregates only live jobs).
+  await maintenanceQueue.upsertJobScheduler(
+    "maintenance:rebuild-companies",
+    { pattern: "30 4 * * *" },
+    { name: "rebuild-companies" },
+  );
+  summary.push({ id: "maintenance:rebuild-companies", everyMin: 24 * 60 });
+
   // Daily UK Licensed-Sponsor refresh at 05:30 UTC — gov.uk republishes the
   // register on business mornings, so we pick it up after. Re-tags every
   // active GB employer (Task 8). Safe to run repeatedly (idempotent).
