@@ -44,6 +44,9 @@ export async function SiteFooter() {
           <Link href="/about" className="hover:text-foreground">
             About
           </Link>
+          <Link href="/portfolio" className="hover:text-foreground">
+            Portfolio
+          </Link>
           <Link href="/contact" className="hover:text-foreground">
             Contact
           </Link>
