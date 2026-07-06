@@ -7,7 +7,18 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { JobListItem } from "@/app/_components/JobListItem";
 import { InitialsAvatar } from "@/app/jobs/_components/InitialsAvatar";
 import { countryName } from "@/lib/format";
+import { sourceType } from "@/lib/api/sources";
 import { pageOpenGraph } from "@/lib/seo/og";
+
+const ATS_LABEL: Record<string, string> = {
+  greenhouse: "Greenhouse",
+  lever: "Lever",
+  ashby: "Ashby",
+  smartrecruiters: "SmartRecruiters",
+  workday: "Workday",
+  workable: "Workable",
+  recruitmentrevolution: "Recruitment Revolution",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +62,13 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
     take: 100,
   });
 
+  // Which direct ATS platform(s) actually sourced this company's jobs.
+  const directPlatforms = [
+    ...new Set(jobs.filter((j) => sourceType(j.source) === "direct").map((j) => j.source)),
+  ]
+    .map((s) => ATS_LABEL[s] ?? null)
+    .filter(Boolean) as string[];
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <SiteHeader />
@@ -86,7 +104,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
                   {company.domain} ↗
                 </a>
               ) : null}
-              {company.hasDirect ? (
+              {directPlatforms.length > 0 ? (
+                <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                  Direct from {directPlatforms.join(", ")}
+                </span>
+              ) : company.hasDirect ? (
                 <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                   Direct apply
                 </span>

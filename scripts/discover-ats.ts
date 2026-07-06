@@ -19,6 +19,8 @@
  * — and we don't scrape those (ToS). See info/COMPLIANCE.md.
  */
 
+export {};
+
 const UA = "Mozilla/5.0 (compatible; ToplistersBot/1.0; +https://toplisters.xyz)";
 const INDIA_RE =
   /india|bengaluru|bangalore|mumbai|delhi|hyderabad|gurgaon|gurugram|pune|chennai|noida|kolkata/i;

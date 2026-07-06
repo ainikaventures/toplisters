@@ -25,7 +25,8 @@
     "visa-pathways:refresh": "tsx scripts/recompute-visa-pathways.ts",
     "discover-ats": "tsx scripts/discover-ats.ts",
     "rebuild-companies": "tsx scripts/rebuild-companies.ts",
-    "direct-coverage": "tsx scripts/direct-coverage.ts"
+    "direct-coverage": "tsx scripts/direct-coverage.ts",
+    "scrape-park": "tsx scripts/scrape-park.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
