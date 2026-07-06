@@ -35,6 +35,7 @@ const DEFAULT_LOCATIONS: readonly string[] = [
   "United Arab Emirates",
   "Canada",
   "Australia",
+  "India",
 ];
 
 interface WorkableJob {

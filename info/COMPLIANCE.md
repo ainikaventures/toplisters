@@ -107,6 +107,17 @@ Caveat: the endpoint is **undocumented** (no formal API agreement, unlike
 Jooble/Adzuna). Treated as a syndication-friendly public board; revisit if
 Workable publishes terms restricting it or offers an official partner feed.
 
+## Indian IT employers — direct where the ATS allows
+
+We pull Indian employers **directly** from the ATS platforms they host their
+boards on (Greenhouse / Lever / Ashby / SmartRecruiters / Workable) — verified
+public boards, giving `apply_url_direct`. `npm run discover-ats` finds a
+company's ATS + slug and verifies the match. The large IT-services firms
+(TCS, Infosys, Wipro, HCLTech, Tech Mahindra, Cognizant, …) run **custom /
+self-hosted career portals**, not these ATS — we do **not** scrape those, so
+they're covered only via the aggregators (Adzuna India, Jooble) that syndicate
+them. Revisit a direct pull only with an official feed or agreement.
+
 ## Sources deliberately NOT ingested
 
 - **Gulf regional boards — Bayt, GulfTalent, NaukriGulf** (vetted 2026-06):

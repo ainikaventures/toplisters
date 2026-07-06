@@ -13,6 +13,8 @@ const REQUEST_GAP_MS = 250;
 const DEFAULT_COMPANIES: readonly string[] = [
   "stripe", "airbnb", "datadog", "cloudflare", "reddit",
   "figma", "robinhood", "asana", "dropbox", "discord",
+  // India — verified direct boards (Indian IT/product employers).
+  "postman", "phonepe", "groww", "druva", "netradyne", "highradius", "rubrik", "slice",
 ];
 
 interface GhMetadata {
@@ -53,12 +55,12 @@ interface FetchPayload {
 }
 
 function configuredCompanies(): string[] {
-  const raw = process.env.GREENHOUSE_COMPANIES?.trim();
-  if (!raw) return [...DEFAULT_COMPANIES];
-  return raw
+  // Curated defaults always run; GREENHOUSE_COMPANIES extends (union, deduped).
+  const extra = (process.env.GREENHOUSE_COMPANIES ?? "")
     .split(",")
     .map((c) => c.trim().toLowerCase())
     .filter(Boolean);
+  return [...new Set([...DEFAULT_COMPANIES, ...extra])];
 }
 
 function sleep(ms: number): Promise<void> {

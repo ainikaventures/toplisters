@@ -18,7 +18,11 @@ const REQUEST_GAP_MS = 200;
 const MAX_PER_COMPANY =
   Number.parseInt(process.env.SMARTRECRUITERS_MAX ?? "", 10) || 60;
 
-const DEFAULT_COMPANIES: readonly string[] = ["Visa", "Bosch", "Square"];
+const DEFAULT_COMPANIES: readonly string[] = [
+  "Visa", "Bosch", "Square",
+  // India — verified direct boards (Indian IT/product employers).
+  "Freshworks", "Swiggy", "Whatfix",
+];
 
 interface SrLocation {
   city?: string;
@@ -81,9 +85,12 @@ function pickWorkMode(loc: SrLocation | undefined): $Enums.WorkMode {
   return loc ? "onsite" : "unknown";
 }
 function configuredCompanies(): string[] {
-  const raw = process.env.SMARTRECRUITERS_COMPANIES?.trim();
-  if (!raw) return [...DEFAULT_COMPANIES];
-  return raw.split(",").map((c) => c.trim()).filter(Boolean);
+  // Curated defaults always run; SMARTRECRUITERS_COMPANIES extends (union).
+  const extra = (process.env.SMARTRECRUITERS_COMPANIES ?? "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+  return [...new Set([...DEFAULT_COMPANIES, ...extra])];
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

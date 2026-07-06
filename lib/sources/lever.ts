@@ -15,6 +15,8 @@ const REQUEST_GAP_MS = 250;
 // 404s are logged and skipped.
 const DEFAULT_COMPANIES: readonly string[] = [
   "spotify",
+  // India — verified direct boards (locations confirmed India).
+  "cred", "meesho", "zeta",
 ];
 
 interface LeverCategories {
@@ -82,12 +84,12 @@ function pickWorkMode(workplaceType: string | undefined): $Enums.WorkMode {
 }
 
 function configuredCompanies(): string[] {
-  const raw = process.env.LEVER_COMPANIES?.trim();
-  if (!raw) return [...DEFAULT_COMPANIES];
-  return raw
+  // Curated defaults always run; LEVER_COMPANIES extends (union, deduped).
+  const extra = (process.env.LEVER_COMPANIES ?? "")
     .split(",")
     .map((c) => c.trim().toLowerCase())
     .filter(Boolean);
+  return [...new Set([...DEFAULT_COMPANIES, ...extra])];
 }
 
 function sleep(ms: number): Promise<void> {
