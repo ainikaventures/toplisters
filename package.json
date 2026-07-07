@@ -22,7 +22,12 @@
     "post-to-social": "tsx scripts/post-to-social.ts",
     "apikey": "tsx scripts/apikey.ts",
     "sponsors:refresh": "tsx scripts/refresh-sponsors.ts",
-    "visa-pathways:refresh": "tsx scripts/recompute-visa-pathways.ts"
+    "visa-pathways:refresh": "tsx scripts/recompute-visa-pathways.ts",
+    "discover-ats": "tsx scripts/discover-ats.ts",
+    "rebuild-companies": "tsx scripts/rebuild-companies.ts",
+    "direct-coverage": "tsx scripts/direct-coverage.ts",
+    "scrape-park": "tsx scripts/scrape-park.ts",
+    "discover-country": "tsx scripts/discover-country.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

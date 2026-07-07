@@ -41,28 +41,17 @@ import { detectVisaSponsorship, visaSponsorLabel } from "../lib/classify/visa";
     return;
   }
 
-  // Group by target value → a handful of bulk updateMany calls instead of
-  // 200k+ per-row updates wrapped in short 5s $transaction batches (which hit
-  // Prisma's P2028 transaction timeout on the heavily-indexed jobs table).
-  const groups = new Map<boolean | null, string[]>();
-  for (const u of updates) {
-    const arr = groups.get(u.to);
-    if (arr) arr.push(u.id);
-    else groups.set(u.to, [u.id]);
-  }
-  let done = 0;
-  for (const [to, ids] of groups) {
-    for (let i = 0; i < ids.length; i += 1000) {
-      const slice = ids.slice(i, i + 1000);
-      await prisma.job.updateMany({
-        where: { id: { in: slice } },
-        data: { visaSponsorship: to },
-      });
-      done += slice.length;
-    }
+  const BATCH = 50;
+  for (let i = 0; i < updates.length; i += BATCH) {
+    const chunk = updates.slice(i, i + BATCH);
+    await prisma.$transaction(
+      chunk.map((u) =>
+        prisma.job.update({ where: { id: u.id }, data: { visaSponsorship: u.to } }),
+      ),
+    );
   }
 
-  console.log(`✓ Updated ${done} rows`);
+  console.log(`✓ Updated ${updates.length} rows`);
   await prisma.$disconnect();
 })().catch(async (error) => {
   console.error(error);

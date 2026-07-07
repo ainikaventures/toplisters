@@ -37,6 +37,12 @@ const DEFAULT_LOCATIONS: readonly { label: string; iso2: string }[] = [
   { label: "Jordan", iso2: "JO" },
   { label: "Lebanon", iso2: "LB" },
   { label: "Turkey", iso2: "TR" },
+  // Skilled-migration destinations we make visa-pathway claims for but Adzuna
+  // doesn't cover (Ireland) or where Jooble adds real depth. Verified live.
+  { label: "Ireland", iso2: "IE" },
+  { label: "New Zealand", iso2: "NZ" },
+  { label: "Singapore", iso2: "SG" },
+  { label: "Sweden", iso2: "SE" },
 ];
 
 interface JoobleItem {
@@ -116,8 +122,8 @@ function sleep(ms: number): Promise<void> {
  *
  * Per-country budget at the 90-min cadence already in scheduler.ts
  * (jooble: 90):
- *   19 countries × 1 page × 50 results = 19 calls/run × 16 runs/day
- *   ≈ 304 calls/day — well under typical free-tier limits.
+ *   23 countries × 1 page × 50 results = 23 calls/run × 16 runs/day
+ *   ≈ 368 calls/day — well under typical free-tier limits.
  *
  * Quirks:
  *  - POST endpoint with API key in the URL path: POST /api/<key>

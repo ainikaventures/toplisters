@@ -3,6 +3,7 @@
 import type { AnalysisResult } from "@/lib/sports/types";
 import { ProbabilityBars } from "./ProbabilityBars";
 import { RoadmapPanel } from "./RoadmapPanel";
+import { Flag } from "./Flag";
 
 /** The result for a picked competitor: win %, exact verdict, path, AI roadmap. */
 export function ResultPanel({ result }: { result: AnalysisResult }) {
@@ -20,6 +21,24 @@ export function ResultPanel({ result }: { result: AnalysisResult }) {
 
   return (
     <div className="space-y-8">
+      {/* Who's picked — photo (F1) / flag + name */}
+      <div className="flex items-center gap-3">
+        {target.photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={target.photoUrl}
+            alt=""
+            loading="lazy"
+            width={40}
+            height={40}
+            className="size-10 shrink-0 rounded-full object-cover object-top ring-1 ring-foreground/10"
+          />
+        ) : target.iso2 ? (
+          <Flag iso2={target.iso2} className="h-6 w-9 shrink-0 rounded-[2px] object-cover ring-1 ring-foreground/10" />
+        ) : null}
+        <h2 className="text-lg font-semibold tracking-tight">{target.name}</h2>
+      </div>
+
       {/* Big number + exact verdict */}
       <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
         <div className="shrink-0">

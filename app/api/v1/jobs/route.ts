@@ -266,7 +266,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     // Haversine in SQL (no PostGIS dependency). Exclude ungeocoded/null-island rows.
     cond.push(Prisma.sql`(lat <> 0 OR lng <> 0)`);
     cond.push(
-      Prisma.sql`${EARTH_RADIUS_MI}::float8 * 2 * asin(sqrt(power(sin(radians(lat - ${near.lat}) / 2), 2) + cos(radians(${near.lat})) * cos(radians(lat)) * power(sin(radians(lng - ${near.lng}) / 2), 2))) <= ${radiusMi}`,
+      Prisma.sql`${EARTH_RADIUS_MI} * 2 * asin(sqrt(power(sin(radians(lat - ${near.lat}) / 2), 2) + cos(radians(${near.lat})) * cos(radians(lat)) * power(sin(radians(lng - ${near.lng}) / 2), 2))) <= ${radiusMi}`,
     );
   }
   // Salary floor: keep jobs whose known salary clears the floor (unknown-salary

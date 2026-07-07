@@ -201,6 +201,55 @@ model CompanyLogo {
   @@map("company_logos")
 }
 
+// Company directory — aggregated from active jobs (one row per employer, with
+// their locations, logo, categories and open-role count). Rebuilt daily by
+// `npm run rebuild-companies`. `companyNames` holds the raw name variants that
+// grouped into this company, so the profile page can query their jobs.
+model Company {
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  name           String
+  normalizedName String    @map("normalized_name")
+  companyNames   String[]  @default([]) @map("company_names")
+  domain         String?
+  logoUrl        String?   @map("logo_url")
+  jobCount       Int       @default(0) @map("job_count")
+  countryCodes   String[]  @default([]) @map("country_codes")
+  cities         String[]  @default([])
+  categories     String[]  @default([])
+  hasDirect      Boolean   @default(false) @map("has_direct")
+  visaFriendly   Boolean   @default(false) @map("visa_friendly")
+  lastJobAt      DateTime? @map("last_job_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([jobCount(sort: Desc)])
+  @@index([normalizedName])
+  @@map("companies")
+}
+
+// Registry of how to pull a company's jobs DIRECTLY (its ATS board slug/tenant).
+// Populated by `npm run discover-ats -- … --save`; the direct-ATS adapters read
+// enabled rows for their platform and fetch them alongside the code defaults.
+// This is the backbone for growing direct coverage and, eventually, dropping
+// aggregator APIs where direct coverage is strong.
+model EmployerAtsSource {
+  id             String    @id @default(cuid())
+  platform       String // greenhouse | lever | ashby | smartrecruiters | workday
+  slug           String // account slug (or "tenant:wdN:site" for workday)
+  companyName    String    @map("company_name")
+  normalizedName String    @map("normalized_name")
+  enabled        Boolean   @default(true)
+  confidence     String? // verified | location | unverified
+  jobCount       Int       @default(0) @map("job_count")
+  lastFetchedAt  DateTime? @map("last_fetched_at")
+  discoveredAt   DateTime  @default(now()) @map("discovered_at")
+
+  @@unique([platform, slug])
+  @@index([platform, enabled])
+  @@map("employer_ats_sources")
+}
+
 // Email-alert subscribers. Phase-1.5 collection-only — actual digest
 // sending is deferred until Resend's sending domain is verified
 // post-deploy. Each subscriber confirms via magic-link before they're

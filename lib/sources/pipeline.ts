@@ -5,6 +5,7 @@ import { classifyCollar } from "@/lib/classify/collar";
 import { classifyCategory } from "@/lib/classify/category";
 import { detectVisaSponsorship } from "@/lib/classify/visa";
 import { computeDedupeHash } from "./utils";
+import { sourceType } from "@/lib/api/sources";
 import type { JobSource, NormalizedJob } from "./types";
 
 const UNKNOWN_COUNTRY = "ZZ";
@@ -60,14 +61,21 @@ async function processJob(
   now: Date,
   stats: RunStats,
 ): Promise<void> {
-  const geo = await geocode(job.locationText);
+  let geo = await geocode(job.locationText);
 
-  // Pure-worldwide remotes with no resolvable country are skipped here
-  // rather than pinned to (0, 0); a "worldwide" globe overlay will pick
-  // them up in a later step.
+  // No resolvable country. If the role is clearly remote/worldwide, keep it
+  // (country ZZ, no coordinates) rather than dropping it — recovering a whole
+  // class of remote jobs the pipeline used to discard. Truly unparseable
+  // non-remote locations are still skipped as likely bad data.
   if (!geo) {
-    stats.skippedNoLocation++;
-    return;
+    const isRemote =
+      job.workMode === "remote" ||
+      /\b(remote|worldwide|anywhere|distributed|global)\b/i.test(job.locationText);
+    if (!isRemote) {
+      stats.skippedNoLocation++;
+      return;
+    }
+    geo = { countryCode: null, region: null, city: null, lat: 0, lng: 0 };
   }
 
   // Logo fallback: if the source didn't ship a logo URL (RemoteOK no longer
@@ -113,10 +121,31 @@ async function processJob(
     // protects companyDomain (Adzuna only resolves it via enrichment).
     const keepExistingDescription =
       byHash.descriptionHtml.length > job.descriptionHtml.length * 1.5;
-    // Refresh mutable fields too — a re-run from the same source might bring
-    // a better logo, an updated salary, or a corrected location.
-    // We do *not* overwrite source / sourceId on cross-source hits so the
-    // first-seen source keeps ownership for analytics.
+
+    // Direct-source precedence: when the same job reaches us from both a
+    // direct employer/ATS source and an aggregator (Adzuna/Reed/Jooble/…),
+    // prefer the direct apply link — our medium over the wrapper.
+    const incomingDirect = sourceType(sourceName) === "direct";
+    const existingDirect = sourceType(byHash.source) === "direct";
+    // aggregator → direct: adopt the direct source + its real apply link.
+    const upgradeToDirect = incomingDirect && !existingDirect;
+    // direct already owns it, an aggregator is re-reporting: keep the direct
+    // source, apply link, and description — don't let the wrapper clobber them.
+    const protectDirect = existingDirect && !incomingDirect;
+
+    // Adopt the direct source's identity on an upgrade so it owns the row —
+    // unless a row already holds (source, sourceId) (a rare hash-drift case),
+    // which would collide on the unique constraint. Then keep the direct apply
+    // link but leave the row's identity as-is.
+    let adopt = upgradeToDirect;
+    if (adopt) {
+      const owner = await prisma.job.findUnique({
+        where: { source_sourceId: { source: sourceName, sourceId: job.sourceId } },
+        select: { id: true },
+      });
+      if (owner && owner.id !== byHash.id) adopt = false;
+    }
+
     await prisma.job.update({
       where: { id: byHash.id },
       data: {
@@ -125,9 +154,12 @@ async function processJob(
         companyDomain: job.companyDomain ?? byHash.companyDomain,
         companyLogoUrl,
         locationText: job.locationText,
-        applyUrl: job.applyUrl,
-        descriptionHtml: keepExistingDescription ? byHash.descriptionHtml : job.descriptionHtml,
-        descriptionText: keepExistingDescription ? byHash.descriptionText : job.descriptionText,
+        applyUrl: protectDirect ? byHash.applyUrl : job.applyUrl,
+        ...(adopt ? { source: sourceName, sourceId: job.sourceId } : {}),
+        descriptionHtml:
+          protectDirect || keepExistingDescription ? byHash.descriptionHtml : job.descriptionHtml,
+        descriptionText:
+          protectDirect || keepExistingDescription ? byHash.descriptionText : job.descriptionText,
         salaryMin: job.salaryMin,
         salaryMax: job.salaryMax,
         salaryCurrency: job.salaryCurrency,

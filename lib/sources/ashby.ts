@@ -1,6 +1,7 @@
 import type { JobSource, NormalizedJob } from "./types";
 import type { $Enums } from "@/lib/generated/prisma/client";
 import { cleanHtml, htmlToPlainText } from "./utils";
+import { registrySlugs } from "./ats-registry";
 
 const USER_AGENT = "Toplisters/1.0 (+https://toplisters.xyz)";
 const REQUEST_GAP_MS = 250;
@@ -10,6 +11,8 @@ const REQUEST_GAP_MS = 250;
 // Companies that move off Ashby return 404 and are logged + skipped.
 const DEFAULT_COMPANIES: readonly string[] = [
   "Ashby", "Linear", "Posthog", "Ramp", "openai", "notion",
+  // India — verified direct board (location confirmed India).
+  "atlan",
 ];
 
 interface AshbyAddress {
@@ -102,10 +105,13 @@ function pickWorkMode(
 }
 
 function configuredCompanies(): string[] {
-  const raw = process.env.ASHBY_COMPANIES?.trim();
   // No lowercasing — Ashby's URL path is case-sensitive ("Ashby" ≠ "ashby").
-  if (!raw) return [...DEFAULT_COMPANIES];
-  return raw.split(",").map((c) => c.trim()).filter(Boolean);
+  // Curated defaults always run; ASHBY_COMPANIES extends (union, deduped).
+  const extra = (process.env.ASHBY_COMPANIES ?? "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+  return [...new Set([...DEFAULT_COMPANIES, ...extra])];
 }
 
 function sleep(ms: number): Promise<void> {
@@ -161,7 +167,8 @@ class AshbySource implements JobSource {
 
   async fetch(): Promise<unknown> {
     const items: FetchedItem[] = [];
-    for (const slug of configuredCompanies()) {
+    const slugs = [...new Set([...configuredCompanies(), ...(await registrySlugs("ashby"))])];
+    for (const slug of slugs) {
       try {
         const response = await fetch(
           `https://api.ashbyhq.com/posting-api/job-board/${slug}?includeCompensation=true`,

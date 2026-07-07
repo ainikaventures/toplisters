@@ -1,6 +1,7 @@
 import type { JobSource, NormalizedJob } from "./types";
 import type { $Enums } from "@/lib/generated/prisma/client";
 import { cleanHtml, htmlToPlainText } from "./utils";
+import { registrySlugs } from "./ats-registry";
 
 const USER_AGENT = "Toplisters/1.0 (+https://toplisters.xyz)";
 const REQUEST_GAP_MS = 250;
@@ -13,6 +14,8 @@ const REQUEST_GAP_MS = 250;
 const DEFAULT_COMPANIES: readonly string[] = [
   "stripe", "airbnb", "datadog", "cloudflare", "reddit",
   "figma", "robinhood", "asana", "dropbox", "discord",
+  // India — verified direct boards (Indian IT/product employers).
+  "postman", "phonepe", "groww", "druva", "netradyne", "highradius", "rubrik", "slice",
 ];
 
 interface GhMetadata {
@@ -53,12 +56,12 @@ interface FetchPayload {
 }
 
 function configuredCompanies(): string[] {
-  const raw = process.env.GREENHOUSE_COMPANIES?.trim();
-  if (!raw) return [...DEFAULT_COMPANIES];
-  return raw
+  // Curated defaults always run; GREENHOUSE_COMPANIES extends (union, deduped).
+  const extra = (process.env.GREENHOUSE_COMPANIES ?? "")
     .split(",")
     .map((c) => c.trim().toLowerCase())
     .filter(Boolean);
+  return [...new Set([...DEFAULT_COMPANIES, ...extra])];
 }
 
 function sleep(ms: number): Promise<void> {
@@ -131,7 +134,8 @@ class GreenhouseSource implements JobSource {
 
   async fetch(): Promise<unknown> {
     const items: FetchedItem[] = [];
-    for (const slug of configuredCompanies()) {
+    const slugs = [...new Set([...configuredCompanies(), ...(await registrySlugs("greenhouse"))])];
+    for (const slug of slugs) {
       try {
         const response = await fetch(
           `https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`,

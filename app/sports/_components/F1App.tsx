@@ -1,9 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { f1Engine, type F1Data } from "@/lib/sports/f1/engine";
+import { f1Engine, type F1Data, type F1Driver } from "@/lib/sports/f1/engine";
 import type { AnalysisResult } from "@/lib/sports/types";
 import { ResultPanel } from "./ResultPanel";
+import { Flag } from "./Flag";
+
+function DriverAvatar({ driver }: { driver: F1Driver }) {
+  if (driver.photoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={driver.photoUrl}
+        alt=""
+        loading="lazy"
+        width={36}
+        height={36}
+        className="size-9 shrink-0 rounded-full object-cover object-top ring-1 ring-foreground/10"
+      />
+    );
+  }
+  return (
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-foreground/60 ring-1 ring-foreground/10">
+      {driver.code}
+    </span>
+  );
+}
 
 export function F1App() {
   const [data, setData] = useState<F1Data | null>(null);
@@ -80,8 +102,12 @@ export function F1App() {
                 <span className="w-5 shrink-0 text-right tabular-nums text-foreground/50">
                   {i + 1}
                 </span>
+                <DriverAvatar driver={d} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{d.name}</span>
+                  <span className="flex items-center gap-1.5">
+                    {d.flag ? <Flag iso2={d.flag} /> : null}
+                    <span className="truncate font-medium">{d.name}</span>
+                  </span>
                   <span className="block truncate text-xs text-foreground/50">{d.constructor}</span>
                 </span>
                 <span className="shrink-0 tabular-nums font-semibold">{d.points}</span>
@@ -89,6 +115,30 @@ export function F1App() {
             </li>
           ))}
         </ul>
+
+        {data.constructors.length > 0 ? (
+          <div className="mt-6">
+            <h2 className="mb-3 text-sm font-semibold">Constructors&apos; Championship</h2>
+            <ul className="overflow-hidden rounded-xl border border-foreground/10">
+              {data.constructors.map((c, i) => (
+                <li
+                  key={c.name}
+                  className={`flex items-center gap-3 px-3 py-2 text-sm ${i > 0 ? "border-t border-foreground/5" : ""}`}
+                >
+                  <span className="w-5 shrink-0 text-right tabular-nums text-foreground/50">
+                    {i + 1}
+                  </span>
+                  {c.flag ? <Flag iso2={c.flag} /> : <span className="w-[22px] shrink-0" />}
+                  <span className="min-w-0 flex-1 truncate font-medium">{c.name}</span>
+                  {c.wins > 0 ? (
+                    <span className="shrink-0 text-xs text-foreground/45">{c.wins} win{c.wins === 1 ? "" : "s"}</span>
+                  ) : null}
+                  <span className="w-10 shrink-0 text-right tabular-nums font-semibold">{c.points}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       {/* Result */}

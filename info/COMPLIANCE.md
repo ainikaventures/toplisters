@@ -90,6 +90,34 @@ label / a follow link, respectively).
 3. **Attribution on JSON-LD / aggregated sources** — verify the
    underlying boards permit re-display when adding new JSON-LD sites.
 
+## Workable public board (vetted 2026-06, owner-approved)
+
+We ingest Workable via its **public board API** (`jobs.workable.com/api/v1/jobs`),
+not the per-company SPI (`<sub>.workable.com/spi/v3/jobs`), which requires each
+employer's private API token (returns 401 without it). Basis for treating this
+as acceptable, in contrast to the Gulf boards below:
+
+- It is Workable's **public, distribution-intended** board — employers publish
+  there expressly for syndication (Google Jobs, aggregators, etc.).
+- `robots.txt` **allows** the API path (only disallows query-string `/search?*`
+  pages, which we do not request); no bot-blocking.
+- We attribute **"via Workable"**, rate-limit, and ship `DISABLE_SOURCE_WORKABLE`.
+
+Caveat: the endpoint is **undocumented** (no formal API agreement, unlike
+Jooble/Adzuna). Treated as a syndication-friendly public board; revisit if
+Workable publishes terms restricting it or offers an official partner feed.
+
+## Indian IT employers — direct where the ATS allows
+
+We pull Indian employers **directly** from the ATS platforms they host their
+boards on (Greenhouse / Lever / Ashby / SmartRecruiters / Workable) — verified
+public boards, giving `apply_url_direct`. `npm run discover-ats` finds a
+company's ATS + slug and verifies the match. The large IT-services firms
+(TCS, Infosys, Wipro, HCLTech, Tech Mahindra, Cognizant, …) run **custom /
+self-hosted career portals**, not these ATS — we do **not** scrape those, so
+they're covered only via the aggregators (Adzuna India, Jooble) that syndicate
+them. Revisit a direct pull only with an official feed or agreement.
+
 ## Sources deliberately NOT ingested
 
 - **Gulf regional boards — Bayt, GulfTalent, NaukriGulf** (vetted 2026-06):

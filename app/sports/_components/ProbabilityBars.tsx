@@ -1,6 +1,7 @@
 "use client";
 
 import type { ProbabilityEntry } from "@/lib/sports/types";
+import { Flag } from "./Flag";
 
 /** Simple horizontal probability bars — the target highlighted, rivals below. */
 export function ProbabilityBars({
@@ -17,11 +18,12 @@ export function ProbabilityBars({
       {rows.map((r, i) => (
         <li key={r.id} className="flex items-center gap-3">
           <span
-            className={`w-28 shrink-0 truncate text-sm sm:w-36 ${
+            className={`flex w-28 shrink-0 items-center gap-1.5 truncate text-sm sm:w-36 ${
               i === 0 ? "font-semibold" : "text-foreground/70"
             }`}
           >
-            {r.name}
+            {r.iso2 ? <Flag iso2={r.iso2} /> : null}
+            <span className="truncate">{r.name}</span>
           </span>
           <div className="relative h-5 flex-1 overflow-hidden rounded-md bg-muted">
             <div

@@ -1,6 +1,7 @@
 import type { JobSource, NormalizedJob } from "./types";
 import type { $Enums } from "@/lib/generated/prisma/client";
 import { cleanHtml, htmlToPlainText } from "./utils";
+import { registrySlugs } from "./ats-registry";
 
 /**
  * Workday — the enterprise ATS behind a huge share of large-company careers
@@ -59,15 +60,17 @@ const TYPE_MAP: Record<string, $Enums.JobType> = {
 function pickJobType(timeType: string | undefined): $Enums.JobType {
   return TYPE_MAP[(timeType ?? "").toLowerCase()] ?? "full_time";
 }
-function configuredTenants(): WdConfig[] {
-  const raw = process.env.WORKDAY_TENANTS?.trim();
-  const list = raw ? raw.split(",") : [...DEFAULT_TENANTS];
+function parseTenants(list: string[]): WdConfig[] {
   return list
     .map((s) => {
       const [tenant, wd, site] = s.split(":").map((x) => x?.trim());
       return { tenant, wd, site } as WdConfig;
     })
     .filter((c) => c.tenant && c.wd && c.site);
+}
+function configuredTenants(): WdConfig[] {
+  const raw = process.env.WORKDAY_TENANTS?.trim();
+  return parseTenants(raw ? raw.split(",") : [...DEFAULT_TENANTS]);
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -83,7 +86,16 @@ class WorkdaySource implements JobSource {
 
   async fetch(): Promise<unknown> {
     const items: FetchedItem[] = [];
-    for (const cfg of configuredTenants()) {
+    const seen = new Set<string>();
+    const cfgs = [...configuredTenants(), ...parseTenants(await registrySlugs("workday"))].filter(
+      (c) => {
+        const key = `${c.tenant}:${c.wd}:${c.site}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      },
+    );
+    for (const cfg of cfgs) {
       const base = `https://${cfg.tenant}.${cfg.wd}.myworkdayjobs.com/wday/cxs/${cfg.tenant}/${cfg.site}`;
       try {
         const paths: string[] = [];

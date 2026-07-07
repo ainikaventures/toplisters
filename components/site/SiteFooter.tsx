@@ -35,6 +35,9 @@ export async function SiteFooter() {
           >
             Browse by location
           </Link>
+          <Link href="/companies" className="font-medium text-foreground hover:underline">
+            Companies
+          </Link>
           <Link href="/sitemap" className="font-medium text-foreground hover:underline">
             Sitemap
           </Link>

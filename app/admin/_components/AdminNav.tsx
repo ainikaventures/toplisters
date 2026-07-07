@@ -4,6 +4,7 @@ const TABS: { href: string; label: string }[] = [
   { href: "/admin/queue", label: "Moderation queue" },
   { href: "/admin/featured", label: "Featured" },
   { href: "/admin/inbox", label: "Recruiter inbox" },
+  { href: "/admin/coverage", label: "Direct coverage" },
   { href: "/admin/bullmq", label: "Queues" },
 ];
 

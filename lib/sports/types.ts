@@ -29,6 +29,10 @@ export interface ProbabilityEntry {
   name: string;
   /** 0..1 simulated title probability. */
   probability: number;
+  /** ISO2 (lowercase) for a flag — team nationality (WC) or driver (F1). */
+  iso2?: string | null;
+  /** Headshot URL (F1 drivers). */
+  photoUrl?: string | null;
 }
 
 /** Deterministic, exact "is it still possible + what must happen" verdict. */

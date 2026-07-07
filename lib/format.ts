@@ -151,7 +151,7 @@ const FX_TO_USD: Record<string, number> = {
   USD: 1, GBP: 1.27, EUR: 1.08, INR: 0.012, AUD: 0.66, CAD: 0.73, SGD: 0.74,
   CHF: 1.12, PLN: 0.25, BRL: 0.18, MXN: 0.058, ZAR: 0.054, NZD: 0.6, JPY: 0.0064,
   CNY: 0.14, AED: 0.27, SAR: 0.27, QAR: 0.27, KWD: 3.25, OMR: 2.6, BHD: 2.65,
-  EGP: 0.02, JOD: 1.41, TRY: 0.026, ILS: 0.27,
+  EGP: 0.02, JOD: 1.41, TRY: 0.026, ILS: 0.27, SEK: 0.096,
 };
 const PERIOD_TO_YEAR: Record<string, number> = {
   hourly: 2080, daily: 260, weekly: 52, monthly: 12, yearly: 1,
