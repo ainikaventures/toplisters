@@ -1,3 +1,9 @@
+// ⚠️ Do NOT add `import "server-only"` here. This module is pure data + math
+// (AGGREGATOR_SOURCES, sourceType, haversine, CV1) imported by BOTH the Next app
+// AND the worker via lib/sources/pipeline.ts. A server-only guard can't resolve
+// under plain `tsx scripts/worker.ts` → crash-loops the scheduler (df35d13).
+// The CI `check:worker` gate enforces this.
+
 /**
  * Sources whose `applyUrl` is a provider WRAPPER (recruiter/aggregator
  * redirect), not the employer's own posting. Their APIs don't return the
