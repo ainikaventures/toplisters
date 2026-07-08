@@ -1,5 +1,3 @@
-import "server-only";
-
 /**
  * Sources whose `applyUrl` is a provider WRAPPER (recruiter/aggregator
  * redirect), not the employer's own posting. Their APIs don't return the
