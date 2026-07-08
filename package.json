@@ -27,7 +27,8 @@
     "rebuild-companies": "tsx scripts/rebuild-companies.ts",
     "direct-coverage": "tsx scripts/direct-coverage.ts",
     "scrape-park": "tsx scripts/scrape-park.ts",
-    "discover-country": "tsx scripts/discover-country.ts"
+    "discover-country": "tsx scripts/discover-country.ts",
+    "check:worker": "tsx scripts/check-worker-imports.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

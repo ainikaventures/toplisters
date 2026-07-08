@@ -1,0 +1,39 @@
+# CI gate on push to main + every PR. Coolify builds/deploys separately on push;
+# this catches what `next build` cannot — most importantly a worker that can't
+# boot (a server-only / Next-only import leaking into the plain-Node worker
+# graph, which silently halts all scheduled jobs).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Dummy values so lib/db (Prisma) + BullMQ construct lazily without
+      # throwing; the worker-import check only cares about module resolution.
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db?schema=public"
+      REDIS_URL: "redis://localhost:6379/1"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+      - name: Worker boot check (catches server-only / Next-only leaks the site build can't)
+        run: npm run check:worker

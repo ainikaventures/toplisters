@@ -98,6 +98,10 @@ export async function rebuildCompanies(): Promise<CompanyRebuildStats> {
   const topKeys = (m: Map<string, number>, n: number): string[] =>
     [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([k]) => k);
 
+  // Mark-and-sweep prune: capture the run start, upsert every current company
+  // (which stamps @updatedAt), then delete rows untouched this run. Avoids
+  // passing thousands of slugs to `notIn` (Postgres bind-parameter limit → P2029).
+  const runStart = new Date();
   const slugs = new Set<string>();
   let companies = 0;
   for (const [key, g] of groups) {
@@ -132,6 +136,6 @@ export async function rebuildCompanies(): Promise<CompanyRebuildStats> {
     companies++;
   }
 
-  const pruned = await prisma.company.deleteMany({ where: { slug: { notIn: [...slugs] } } });
+  const pruned = await prisma.company.deleteMany({ where: { updatedAt: { lt: runStart } } });
   return { jobs: jobs.length, companies, pruned: pruned.count };
 }
