@@ -20,22 +20,6 @@ import type { JsonLdSiteConfig } from "./types";
 
 export const JSON_LD_SITES: readonly JsonLdSiteConfig[] = [
   {
-    // Remotive — curated remote-work board with clean schema.org JSON-LD on
-    // every detail page. Sitemap index lives at /sitemap.xml; the postings
-    // sitemap is /sitemap-job-postings-1.xml. URL pattern looks like
-    // /remote-jobs/<category>/<slug>-<numeric-id>.
-    name: "remotive",
-    displayName: "Remotive",
-    homeUrl: "https://remotive.com",
-    sitemapUrls: ["https://remotive.com/sitemap-job-postings-1.xml"],
-    detailUrlPattern: /^https:\/\/remotive\.com\/remote-jobs\/[^/]+\/[^/]+$/,
-    crawlDelayMs: 2000,
-    maxUrlsPerRun: 50,
-    attribution: "via Remotive",
-    collarType: "white",
-    defaultCategory: "remote",
-  },
-  {
     // JournalismJobs.com — long-running US journalism / media board with
     // clean schema.org JSON-LD. Detail URLs are /<numeric-id>-<slug>;
     // sitemap also lists /career-advice/* which the regex filters out.
