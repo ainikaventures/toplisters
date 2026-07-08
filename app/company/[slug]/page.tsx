@@ -23,7 +23,13 @@ const ATS_LABEL: Record<string, string> = {
 export const dynamic = "force-dynamic";
 
 async function getCompany(slug: string) {
-  return prisma.company.findUnique({ where: { slug } });
+  // Degrade to "not found" if the companies table isn't migrated yet, rather
+  // than 500-ing the page.
+  try {
+    return await prisma.company.findUnique({ where: { slug } });
+  } catch {
+    return null;
+  }
 }
 
 export async function generateMetadata({

@@ -40,6 +40,8 @@ export default async function CompaniesPage({
     ? { name: { contains: q, mode: "insensitive" } }
     : {};
 
+  // Degrade to an empty directory if the companies table isn't migrated yet,
+  // rather than 500-ing the page.
   const [companies, total] = await Promise.all([
     prisma.company.findMany({
       where,
@@ -48,7 +50,7 @@ export default async function CompaniesPage({
       take: PAGE_SIZE,
     }),
     prisma.company.count({ where }),
-  ]);
+  ]).catch(() => [[], 0] as const);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
