@@ -228,11 +228,16 @@ export function SnapshotEmptyState({ what }: { what: string }) {
 }
 
 /** Sub-navigation across the three analytics views. */
-export function AnalyticsNav({ current }: { current: "market" | "pipeline" }) {
+export function AnalyticsNav({
+  current,
+}: {
+  current: "market" | "pipeline" | "engagement";
+}) {
   const tabs = [
     { href: "/analytics", label: "Live snapshot", key: "live" },
     { href: "/analytics/pipeline", label: "Pipeline health", key: "pipeline" },
     { href: "/analytics/market", label: "Market intelligence", key: "market" },
+    { href: "/analytics/engagement", label: "Engagement", key: "engagement" },
   ] as const;
 
   return (

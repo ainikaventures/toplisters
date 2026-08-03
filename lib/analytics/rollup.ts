@@ -13,11 +13,13 @@
  */
 import { prisma } from "@/lib/db";
 import { OTHER_CATEGORY } from "@/lib/classify/category";
+import { slugify } from "@/lib/slug";
 
 /** Snapshot keys. Also the primary key in analytics_snapshots. */
 export const SNAPSHOT_KEYS = {
   pipeline: "pipeline-health",
   market: "market-intel",
+  engagement: "engagement",
 } as const;
 
 export type SnapshotKey = (typeof SNAPSHOT_KEYS)[keyof typeof SNAPSHOT_KEYS];
@@ -492,6 +494,209 @@ export async function computeMarketIntel(
   };
 }
 
+// ─── Engagement ───────────────────────────────────────────────────────────
+
+export interface FunnelSlice {
+  label: string;
+  views: number;
+  clicks: number;
+  /** clicks / views as a percentage, null when views == 0. */
+  ctrPct: number | null;
+}
+
+export interface TopListing {
+  id: string;
+  title: string;
+  companyName: string;
+  countryCode: string;
+  category: string;
+  slug: string;
+  views: number;
+  clicks: number;
+  ctrPct: number | null;
+}
+
+export interface EngagementPayload {
+  totals: {
+    views: number;
+    clicks: number;
+    ctrPct: number | null;
+    listingsWithViews: number;
+    listingsWithClicks: number;
+    totalListings: number;
+  };
+  bySource: FunnelSlice[];
+  byCategory: FunnelSlice[];
+  byCountry: FunnelSlice[];
+  /** Highest raw view counts. */
+  mostViewed: TopListing[];
+  /** Best click-through, floored at a minimum view count so a 1-view,
+   *  1-click listing doesn't top the table at 100%. */
+  bestConverting: TopListing[];
+  /** The floor applied to `bestConverting`. Surfaced so the UI can say so. */
+  minViewsForCtr: number;
+}
+
+/** Below this, CTR is noise rather than signal. */
+const MIN_VIEWS_FOR_CTR = 20;
+
+function ctr(clicks: number, views: number): number | null {
+  return views > 0 ? Math.round((clicks / views) * 1000) / 10 : null;
+}
+
+function toSlice(r: {
+  label: string | null;
+  views: bigint | number;
+  clicks: bigint | number;
+}): FunnelSlice {
+  const views = num(r.views);
+  const clicks = num(r.clicks);
+  return { label: r.label ?? "unknown", views, clicks, ctrPct: ctr(clicks, views) };
+}
+
+/**
+ * View → apply-click funnel.
+ *
+ * Reads the denormalised Job.viewCount / Job.clickCount counters rather
+ * than joining pageviews to job_clicks, which keeps every cut here a
+ * single grouped scan of one table.
+ *
+ * Caveat worth repeating wherever this is displayed: viewCount counts
+ * views, not people. The cookieless visitor hash rotates daily
+ * (lib/pageviews.ts), so there is no honest per-listing "unique viewers"
+ * figure over a multi-day window — only views.
+ */
+export async function computeEngagement(): Promise<EngagementPayload> {
+  const [totalsRow, bySource, byCategory, byCountry, mostViewed, bestConverting] =
+    await Promise.all([
+      prisma.$queryRaw<
+        {
+          views: bigint;
+          clicks: bigint;
+          with_views: bigint;
+          with_clicks: bigint;
+          total: bigint;
+        }[]
+      >`
+        SELECT COALESCE(SUM(view_count), 0)::bigint          AS views,
+               COALESCE(SUM(click_count), 0)::bigint         AS clicks,
+               COUNT(*) FILTER (WHERE view_count > 0)::bigint  AS with_views,
+               COUNT(*) FILTER (WHERE click_count > 0)::bigint AS with_clicks,
+               COUNT(*)::bigint                               AS total
+        FROM jobs
+        WHERE is_active = true
+      `,
+      prisma.$queryRaw<{ label: string; views: bigint; clicks: bigint }[]>`
+        SELECT source AS label,
+               COALESCE(SUM(view_count), 0)::bigint  AS views,
+               COALESCE(SUM(click_count), 0)::bigint AS clicks
+        FROM jobs
+        WHERE is_active = true
+        GROUP BY source
+        HAVING COALESCE(SUM(view_count), 0) > 0
+        ORDER BY views DESC
+        LIMIT 12
+      `,
+      prisma.$queryRaw<{ label: string; views: bigint; clicks: bigint }[]>`
+        SELECT category AS label,
+               COALESCE(SUM(view_count), 0)::bigint  AS views,
+               COALESCE(SUM(click_count), 0)::bigint AS clicks
+        FROM jobs
+        WHERE is_active = true
+        GROUP BY category
+        HAVING COALESCE(SUM(view_count), 0) > 0
+        ORDER BY views DESC
+        LIMIT 12
+      `,
+      prisma.$queryRaw<{ label: string; views: bigint; clicks: bigint }[]>`
+        SELECT country_code AS label,
+               COALESCE(SUM(view_count), 0)::bigint  AS views,
+               COALESCE(SUM(click_count), 0)::bigint AS clicks
+        FROM jobs
+        WHERE is_active = true AND country_code <> 'ZZ'
+        GROUP BY country_code
+        HAVING COALESCE(SUM(view_count), 0) > 0
+        ORDER BY views DESC
+        LIMIT 12
+      `,
+      prisma.job.findMany({
+        where: { isActive: true, viewCount: { gt: 0 } },
+        orderBy: { viewCount: "desc" },
+        take: 10,
+        select: {
+          id: true,
+          title: true,
+          companyName: true,
+          countryCode: true,
+          category: true,
+          viewCount: true,
+          clickCount: true,
+        },
+      }),
+      prisma.$queryRaw<
+        {
+          id: string;
+          title: string;
+          company_name: string;
+          country_code: string;
+          category: string;
+          view_count: number;
+          click_count: number;
+        }[]
+      >`
+        SELECT id, title, company_name, country_code, category,
+               view_count, click_count
+        FROM jobs
+        WHERE is_active = true
+          AND view_count >= ${MIN_VIEWS_FOR_CTR}
+          AND click_count > 0
+        ORDER BY click_count::float / NULLIF(view_count, 0) DESC
+        LIMIT 10
+      `,
+    ]);
+
+  const t = totalsRow[0];
+  const totalViews = num(t?.views);
+  const totalClicks = num(t?.clicks);
+
+  return {
+    totals: {
+      views: totalViews,
+      clicks: totalClicks,
+      ctrPct: ctr(totalClicks, totalViews),
+      listingsWithViews: num(t?.with_views),
+      listingsWithClicks: num(t?.with_clicks),
+      totalListings: num(t?.total),
+    },
+    bySource: bySource.map(toSlice),
+    byCategory: byCategory.map(toSlice),
+    byCountry: byCountry.map(toSlice),
+    mostViewed: mostViewed.map((j) => ({
+      id: j.id,
+      title: j.title,
+      companyName: j.companyName,
+      countryCode: j.countryCode,
+      category: j.category,
+      slug: slugify(j.title),
+      views: j.viewCount,
+      clicks: j.clickCount,
+      ctrPct: ctr(j.clickCount, j.viewCount),
+    })),
+    bestConverting: bestConverting.map((j) => ({
+      id: j.id,
+      title: j.title,
+      companyName: j.company_name,
+      countryCode: j.country_code,
+      category: j.category,
+      slug: slugify(j.title),
+      views: j.view_count,
+      clicks: j.click_count,
+      ctrPct: ctr(j.click_count, j.view_count),
+    })),
+    minViewsForCtr: MIN_VIEWS_FOR_CTR,
+  };
+}
+
 // ─── Refresh ──────────────────────────────────────────────────────────────
 
 export interface RefreshResult {
@@ -510,7 +715,7 @@ export async function refreshAnalyticsSnapshots(): Promise<RefreshResult[]> {
 
   const sections: {
     key: SnapshotKey;
-    compute: () => Promise<PipelinePayload | MarketPayload>;
+    compute: () => Promise<PipelinePayload | MarketPayload | EngagementPayload>;
     rows: (p: never) => number | null;
   }[] = [
     {
@@ -522,6 +727,11 @@ export async function refreshAnalyticsSnapshots(): Promise<RefreshResult[]> {
       key: SNAPSHOT_KEYS.market,
       compute: computeMarketIntel,
       rows: (p: never) => (p as unknown as MarketPayload).salaryCoverage.total,
+    },
+    {
+      key: SNAPSHOT_KEYS.engagement,
+      compute: computeEngagement,
+      rows: (p: never) => (p as unknown as EngagementPayload).totals.totalListings,
     },
   ];
 

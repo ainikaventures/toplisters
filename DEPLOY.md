@@ -74,12 +74,25 @@ scheduler), use these cron expressions to match the above:
 0  6   * * *   npm run analytics:refresh
 ```
 
-`analytics:refresh` backs `/analytics/pipeline` and `/analytics/market`, which
-read precomputed rows from `analytics_snapshots` instead of aggregating the
-jobs table per request. Run it **once by hand after the first deploy** — until
-it has run, both pages render an empty state rather than zeroes. It is
-scheduled last in the morning chain (after mark-stale, rebuild-companies and
-refresh-sponsors) so the snapshot reflects a settled dataset.
+`analytics:refresh` backs `/analytics/pipeline`, `/analytics/market` and
+`/analytics/engagement`, which read precomputed rows from
+`analytics_snapshots` instead of aggregating the jobs table per request. Run
+it **once by hand after the first deploy** — until it has run, those pages
+render an empty state rather than zeroes. It is scheduled last in the morning
+chain (after mark-stale, rebuild-companies and refresh-sponsors) so the
+snapshot reflects a settled dataset.
+
+**One-time after deploying the view counter:**
+
+```sh
+npm run backfill:view-counts      # add --dry to preview
+```
+
+`Job.viewCount` is a counter cache incremented by `/api/track` (the
+bot-filtered pageview beacon). Pageview rows remain the source of truth, so
+this rebuilds the column from history that predates the counter. It SETs
+absolute values rather than incrementing, so it is idempotent — safe to
+re-run any time you suspect drift. Not scheduled; run on demand.
 
 Do **not** run both the internal worker scheduler *and* external cron for the
 same task — pick one to avoid double-runs.

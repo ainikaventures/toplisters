@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
+import { jobIdFromPath } from "@/lib/analytics/job-path";
 import {
   clientIpFromHeaders,
   countryFromHeaders,
@@ -60,6 +61,24 @@ export async function POST(request: NextRequest) {
         visitorHash: hash,
       },
     });
+
+    // Counter cache for per-job view counts.
+    //
+    // Incremented here rather than in the job page's server render for two
+    // reasons: this endpoint already drops bots (looksLikeBot above), and
+    // it only fires from a real browser that executed JS, so crawlers and
+    // prefetches don't inflate the number. The Pageview row above stays
+    // the source of truth — viewCount is a denormalised copy so the job
+    // page and the engagement rollup read one integer instead of
+    // aggregating the pageviews table. Rebuild it any time with
+    // `npm run backfill:view-counts`.
+    const jobId = jobIdFromPath(path);
+    if (jobId) {
+      await prisma.job.updateMany({
+        where: { id: jobId },
+        data: { viewCount: { increment: 1 } },
+      });
+    }
   } catch {
     /* swallow — analytics never blocks UX */
   }
