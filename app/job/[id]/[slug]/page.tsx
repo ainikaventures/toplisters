@@ -11,6 +11,7 @@ import { JobJsonLd } from "./_components/JobJsonLd";
 import { SimilarJobs } from "./_components/SimilarJobs";
 import { fetchSimilarJobs } from "./_data/related";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { AlertsCta } from "@/components/alerts/AlertsCta";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/seo/Breadcrumbs";
 import { pageOpenGraph } from "@/lib/seo/og";
@@ -256,6 +257,21 @@ export default async function JobDetailPage({
       ) : null}
 
       <AdSlot placement="detail" />
+
+      <AlertsCta
+        className="mt-12"
+        defaultCountry={
+          job.countryCode && job.countryCode !== "ZZ"
+            ? job.countryCode
+            : undefined
+        }
+        regionLabel={
+          job.countryCode && job.countryCode !== "ZZ"
+            ? countryName(job.countryCode)
+            : null
+        }
+      />
+
       <SimilarJobs jobs={similar} />
     </article>
   );

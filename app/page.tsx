@@ -7,6 +7,9 @@ import { TrackJobsList } from "@/components/analytics/TrackJobsList";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { ItemListJsonLd } from "@/components/schema/ItemListJsonLd";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { BrowseLinks } from "@/components/seo/BrowseLinks";
+import { AlertsCta } from "@/components/alerts/AlertsCta";
 import { countryFromHeaders } from "@/lib/pageviews";
 import { countryName } from "@/lib/format";
 import { slugify } from "@/lib/slug";
@@ -132,7 +135,19 @@ export default async function Home() {
             </div>
           </>
         )}
+
+        <AlertsCta
+          className="mt-14"
+          defaultCountry={country ?? undefined}
+          regionLabel={regionLabel}
+        />
+
+        {/* Crawlable country/city/role links — the globe nav is client-side
+            JS, so without these the homepage passes authority to nothing. */}
+        <BrowseLinks />
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

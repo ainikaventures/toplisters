@@ -1,4 +1,5 @@
 import type { Job } from "@/lib/generated/prisma/client";
+import { OTHER_CATEGORY } from "@/lib/classify/category";
 import { countryName } from "@/lib/format";
 
 const EMPLOYMENT_TYPE: Record<string, string> = {
@@ -63,8 +64,10 @@ export function JobJsonLd({ job, siteUrl }: { job: Job; siteUrl: string }) {
   if (employmentType) json.employmentType = employmentType;
 
   // Industry — free-text string per schema.org; we send the category as-is.
-  // Drops the value when it's our default "other" sentinel.
-  if (job.category && job.category !== "other") {
+  // Drops the value when it's the classifier's give-up sentinel (which is
+  // "Other", capitalised — comparing against "other" never matched, so the
+  // sentinel was being published as a real industry).
+  if (job.category && job.category !== OTHER_CATEGORY) {
     json.industry = job.category;
   }
 
