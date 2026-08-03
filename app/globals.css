@@ -84,6 +84,23 @@
   --chart-4: rgb(14 17 22 / 0.55);
   --chart-5: rgb(14 17 22 / 0.3);
 
+  /* Categorical series palette — distinct from --chart-* above.
+     The brand trio (blue/sun/lime) is an accent set, not a series set:
+     sun and lime sit outside the usable lightness band (L .82 / .90),
+     score only ΔE 7.3 apart under deuteranopia, and lime reads 1.17:1
+     against paper. These three are validated for the lightness band,
+     chroma floor, CVD separation (worst adjacent ΔE 9.2 deutan) and
+     normal-vision separation in BOTH themes. Brand blue is kept as
+     slot 1. Light-mode contrast is under 3:1, so any chart using
+     these must also carry a legend + direct value labels.
+     Re-run the check before changing a value. */
+  --chart-cat-1: #1F6FEB;
+  --chart-cat-2: #eb6834;
+  --chart-cat-3: #1baf7a;
+  /* "Unknown"/gap is deliberately neutral — it is an absence of data,
+     not a fourth category, and must never compete with the real ones. */
+  --chart-cat-muted: rgb(14 17 22 / 0.18);
+
   --radius: 14px;
 }
 
@@ -112,6 +129,14 @@
   --chart-3: var(--tl-lime);
   --chart-4: rgb(246 244 238 / 0.55);
   --chart-5: rgb(246 244 238 / 0.3);
+
+  /* Dark steps of the categorical palette — separately validated against
+     the dark surface (#0E1116), not an automatic lightening of the light
+     values. All three clear 3:1 here. */
+  --chart-cat-1: #3987e5;
+  --chart-cat-2: #d95926;
+  --chart-cat-3: #199e70;
+  --chart-cat-muted: rgb(246 244 238 / 0.22);
 }
 
 @layer base {

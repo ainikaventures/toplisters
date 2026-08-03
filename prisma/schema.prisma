@@ -387,3 +387,21 @@ model EmailMessage {
   @@index([threadId, createdAt])
   @@map("email_messages")
 }
+
+// Precomputed analytics rollups (Task: analytics showcase).
+//
+// The live /analytics page runs ~10 aggregates over the full jobs table on
+// every request, which costs ~2s TTFB at 270k+ rows. The pipeline and market
+// dashboards instead read a single row from here, refreshed on the worker's
+// schedule. `computeMs` records how long the aggregate actually took to
+// build, so the pages can show the cost they're avoiding rather than just
+// asserting it.
+model AnalyticsSnapshot {
+  key         String   @id
+  payload     Json
+  computeMs   Int      @map("compute_ms")
+  rowsScanned Int?     @map("rows_scanned")
+  computedAt  DateTime @default(now()) @map("computed_at")
+
+  @@map("analytics_snapshots")
+}

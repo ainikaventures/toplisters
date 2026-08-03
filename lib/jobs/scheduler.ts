@@ -115,6 +115,17 @@ export async function registerSchedules(): Promise<void> {
   );
   summary.push({ id: "maintenance:refresh-sponsors", everyMin: 24 * 60 });
 
+  // Daily analytics rollup at 06:00 UTC. Deliberately last in the morning
+  // maintenance chain — after mark-stale (03:15), rebuild-companies (04:30)
+  // and refresh-sponsors (05:30) — so the snapshot reflects a settled
+  // dataset rather than one mid-sweep.
+  await maintenanceQueue.upsertJobScheduler(
+    "maintenance:refresh-analytics",
+    { pattern: "0 6 * * *" },
+    { name: "refresh-analytics" },
+  );
+  summary.push({ id: "maintenance:refresh-analytics", everyMin: 24 * 60 });
+
   console.log("Schedules registered:");
   for (const { id, everyMin } of summary) {
     console.log(`  ${id} → every ${everyMin} min`);
