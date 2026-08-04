@@ -53,9 +53,34 @@
  * Application (f/m/d)", "Ex-YC Founder", "Sector Lead (TMT) Directed
  * Content", "NeoCloud & Colo Due Diligence Lead" — and some of it is not a
  * single role at all. Forcing those into a bucket would make the category
- * facet less trustworthy, not more. The honest next lever is classifying
- * from the description body rather than the title alone; that is a larger
- * change and should be measured the same way before being believed.
+ * facet less trustworthy, not more.
+ *
+ * ── NEGATIVE RESULT: don't re-try description scoring this way ───────────
+ *
+ * Aug 2026: inferring the category from the description body by scoring
+ * these same title regexes against it was built and measured, then thrown
+ * away. On 167 descriptions whose titles already classify confidently
+ * (so the title label acts as ground truth), plus 170 descriptions still
+ * in "Other":
+ *
+ *     min score / margin | precision | recall of the remainder
+ *              3 / 2     |   76.7%   |   5.9%
+ *              3 / 3     |   91.3%   |   0.6%
+ *              4 / 3     |   95.0%   |   0.0%
+ *
+ * There is no threshold with usable precision AND usable recall. The cause
+ * is the signal, not the tuning: these patterns match role NOUNS, which
+ * appear in prose incidentally rather than diagnostically. An LGV driver
+ * description mentions "medical" (the medical exam) and scores Healthcare
+ * above Transport.
+ *
+ * What would actually work is weighting terms by how DISCRIMINATIVE they
+ * are rather than hand-listing role nouns — and there is already labelled
+ * data for that: every row whose title matched confidently is a training
+ * example. A Naive Bayes / logistic model over description text, trained on
+ * those rows and shipped as a JSON weight artifact, stays free,
+ * deterministic and worker-compatible. That needs a training run against
+ * the production corpus, so it is a real project, not a rule tweak.
  *
  * Run `npm run reclassify-category -- --dry` to preview the effect on live
  * rows before applying.
