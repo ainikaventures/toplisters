@@ -39,8 +39,13 @@
  *  3. `engineer` NEVER MATCHED "Engineering" — `\bengineer\b` fails on the
  *     -ing form. That single gap accounted for the largest rescue bucket.
  *
- * Measured on the sampled titles: 327/907 (36.1%) of previously-"Other" rows
- * now classify, against 6 re-labellings — of which several are corrections
+ * Measured against the FULL production table (280,214 active rows), not a
+ * sample: "Other" goes 125,511 (44.8%) → 94,307 (33.7%), rescuing 31,204
+ * rows, with 2,433 (0.9%) re-labelled out of an existing category. An
+ * earlier 907-title sample suggested 36% — the real figure is 24.9% of the
+ * bucket, so treat scraped samples as directional only.
+ *
+ * On the sampled titles it was 327/907, against 6 re-labellings — of which several are corrections
  * (a French IT role that had been landing in Hospitality via "Chef"). If you
  * extend this, re-sample and re-measure rather than eyeballing: a rule that
  * looks harmless in isolation steals from its neighbours surprisingly often.
@@ -261,6 +266,19 @@ export function classifyCategory(input: ClassifyCategoryInput): string {
   }
   const hint = input.category ?? "";
   if (hint) {
+    // An already-canonical label is the strongest hint there is — keep it.
+    //
+    // This matters because `reclassify-category` passes the row's CURRENT
+    // category as the hint, and several canonical labels don't match their
+    // own hint regex ("IT & Support" is not the string "it support"). Without
+    // this, re-running the backfill demoted 3,314 correctly-classified
+    // IT & Support rows to "Other" — caught by measuring against the real
+    // table rather than a sample.
+    const canonical = RULES.find(
+      (rule) => rule.label.toLowerCase() === hint.trim().toLowerCase(),
+    );
+    if (canonical) return canonical.label;
+
     for (const rule of RULES) {
       if (rule.hint && rule.hint.test(hint)) return rule.label;
     }
