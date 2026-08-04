@@ -94,6 +94,22 @@ this rebuilds the column from history that predates the counter. It SETs
 absolute values rather than incrementing, so it is idempotent — safe to
 re-run any time you suspect drift. Not scheduled; run on demand.
 
+**One-time after deploying the escaped-HTML and classifier fixes:**
+
+```sh
+npm run fix:escaped-html          # add --dry to preview
+npm run reclassify-category       # add --dry to preview
+```
+
+`fix:escaped-html` repairs job descriptions that were stored entity-encoded
+(`&lt;p&gt;…`) and therefore rendered as literal `<p>` on the page — 21 of 60
+sampled live listings were affected. `cleanHtml` now un-escapes before
+sanitizing, so new ingests are correct; this rewrites existing rows.
+
+`reclassify-category` re-runs the category classifier over active jobs after
+its rule set was extended (multilingual titles, plurals, and the `engineer`
+vs "Engineering" gap). Both are idempotent.
+
 Do **not** run both the internal worker scheduler *and* external cron for the
 same task — pick one to avoid double-runs.
 
