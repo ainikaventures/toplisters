@@ -39,11 +39,23 @@
  *  3. `engineer` NEVER MATCHED "Engineering" — `\bengineer\b` fails on the
  *     -ing form. That single gap accounted for the largest rescue bucket.
  *
- * Measured on the sampled titles: 291/907 (32%) of previously-"Other" rows
+ * Measured on the sampled titles: 304/907 (33.5%) of previously-"Other" rows
  * now classify, against 6 re-labellings — of which several are corrections
  * (a French IT role that had been landing in Hospitality via "Chef"). If you
  * extend this, re-sample and re-measure rather than eyeballing: a rule that
  * looks harmless in isolation steals from its neighbours surprisingly often.
+ * Two candidate rules were reverted during that exercise for exactly this
+ * reason — bare `commercial` (an English business-unit word) and
+ * `product design` (stole "Teacher of Product Design" from Education).
+ *
+ * "Other" WILL NOT REACH ZERO, and chasing that is the wrong goal. Roughly a
+ * third of what remains has no home in a 26-category taxonomy — "Open
+ * Application (f/m/d)", "Ex-YC Founder", "Sector Lead (TMT) Directed
+ * Content", "NeoCloud & Colo Due Diligence Lead" — and some of it is not a
+ * single role at all. Forcing those into a bucket would make the category
+ * facet less trustworthy, not more. The honest next lever is classifying
+ * from the description body rather than the title alone; that is a larger
+ * change and should be measured the same way before being believed.
  *
  * Run `npm run reclassify-category -- --dry` to preview the effect on live
  * rows before applying.
@@ -63,7 +75,7 @@ interface CategoryRule {
 const RULES: CategoryRule[] = [
   {
     label: "Data & Analytics",
-    title: /\b(data (scientist|analyst|engineer|architect|governance|lead|manager|steward)|head of data|data (and|&) ai|machine learning|ml engineer|ai engineer|deep learning|nlp|analytics (engineer|manager|lead)|business intelligence|bi (developer|analyst)|big data|data science|datenanalyst|analista de datos)s?\b/i,
+    title: /\b(data (scientist|analyst|engineer|architect|governance|lead|manager|steward|migration)|head of data|data (and|&) ai|machine learning|ml engineer|ai engineer|deep learning|nlp|analytics (engineer|manager|lead)|business intelligence|bi (developer|analyst)|big data|data science|datenanalyst|analista de datos)s?\b/i,
     hint: /\b(data|analytics|machine learning|artificial intelligence)\b/i,
   },
   {
@@ -108,7 +120,7 @@ const RULES: CategoryRule[] = [
   },
   {
     label: "HR & Recruitment",
-    title: /\b(hr (manager|advisor|business partner|administrator|assistant|officer|director)|human resources|recruit(er|ment|ing)|talent (acquisition|partner|manager)|people (operations|partner)|learning and development|\bl&d\b|reward (manager|analyst)|personalreferent|personalsachbearbeiter|ressources humaines|recursos humanos|risorse umane)s?\b/i,
+    title: /\b(hr (manager|advisor|business partner|administrator|assistant|officer|director)|human resources|\bhris\b|employee (lifecycle|relations|experience)|recruit(er|ment|ing)|talent (acquisition|partner|manager)|people (operations|partner)|learning and development|\bl&d\b|reward (manager|analyst)|personalreferent|personalsachbearbeiter|ressources humaines|recursos humanos|risorse umane)s?\b/i,
     hint: /\b(hr\b|human resources|recruit|talent)\b/i,
   },
   {
@@ -118,12 +130,12 @@ const RULES: CategoryRule[] = [
   },
   {
     label: "Marketing & PR",
-    title: /\b(marketing|\bseo\b|\bsem\b|\bppc\b|content (manager|writer|strategist|marketer|lead)|brand(ing)? (manager|lead|officer)|growth (manager|marketer|lead)|social media|digital marketing|communications|public relations|copywriter|community manager|\bcrm\b|email marketing|mercadeo)s?\b/i,
+    title: /\b(marketing|\bseo\b|\bsem\b|\bppc\b|content (manager|writer|strategist|marketer|lead)|brand(ing)? (manager|lead|officer)|growth (manager|marketer|lead)|demand gen(eration)?|social media|digital marketing|communications|public relations|copywriter|community manager|\bcrm\b|email marketing|mercadeo)s?\b/i,
     hint: /\b(marketing|advertising|public relations|communications)\b/i,
   },
   {
     label: "Customer Service",
-    title: /\b(customer (service|support|success|experience|care|operations)|client (service|success)|call (centre|center)|contact (centre|center)|support (agent|advisor|representative)|customer advisor|kundenservice|kundenberater|service client|atenci[óo]n al cliente)s?\b/i,
+    title: /\b(customer (service|support|success|experience|care|operations|onboarding)|client (service|success)|call (centre|center)|contact (centre|center)|support (agent|advisor|representative)|customer advisor|kundenservice|kundenberater|service client|atenci[óo]n al cliente)s?\b/i,
     hint: /\b(customer service|customer support|call cent)\b/i,
   },
   {
@@ -133,12 +145,12 @@ const RULES: CategoryRule[] = [
   },
   {
     label: "Transport & Driving",
-    title: /\b(hgv|lgv|\bcdl\b|class\s*[12abAB]\b|delivery driver|van driver|truck driver|lorry driver|bus driver|taxi driver|owner[- ]?driver|multi[- ]?drop|own van|\bdepots?\b|courier|chauffeur|driver|transport (manager|planner)|fleet (manager|controller)|fahrer|kraftfahrer|conducteur|autista|motorista|livreur|coursier)s?\b/i,
+    title: /\b(hgv|lgv|\bcdl\b|class\s*[12abAB]\b|delivery driver|van driver|truck driver|lorry driver|bus driver|taxi driver|owner[- ]?driver|shuttle (operator|driver)|multi[- ]?drop|own van|\bdepots?\b|courier|chauffeur|driver|transport (manager|planner)|fleet (manager|controller)|fahrer|kraftfahrer|conducteur|autista|motorista|livreur|coursier)s?\b/i,
     hint: /\b(driving|transport)\b/i,
   },
   {
     label: "Hospitality & Catering",
-    title: /\b(chef|sous chef|head chef|\bcook\b|kitchen (porter|assistant|hand|leader|manager)|eatery|barista|waiter|waitress|bartender|barman|bar (staff|manager)|restaurant (manager|supervisor)|hotel|hospitality|catering|housekeep|concierge|food service|front of house|bankett|k[oö]ch(in)?|cuisinier|cocinero|cuoco|camarer[oa]|serveu(r|se)|kellner)s?\b/i,
+    title: /\b(chef|sous chef|head chef|\bcook\b|kitchen (porter|assistant|hand|leader|manager)|eatery|barista|waiter|waitress|bartender|barman|bar (staff|manager)|restaurant\b|hotel|hospitality|catering|housekeep|concierge|food service|front of house|bankett|k[oö]ch(in)?|cuisinier|cocinero|cuoco|camarer[oa]|serveu(r|se)|kellner)s?\b/i,
     hint: /\b(hospitality|catering|food service|leisure|tourism|travel)\b/i,
   },
   {
@@ -148,7 +160,7 @@ const RULES: CategoryRule[] = [
   },
   {
     label: "Manufacturing & Production",
-    title: /\b(production (operative|worker|manager|supervisor|planner|line)|manufacturing (operative|manager)|assembly (worker|operative)|machine operator|cnc (operator|machinist)|machinist|factory (worker|operative)|process operator|toolmaker|produktionshelfer|produktion|operai[oe]|oper[áa]ri[oa]|monteur|hygiene operator)s?\b/i,
+    title: /\b(production (operative|worker|manager|supervisor|planner|line|employee|associate)|manufacturing (operative|manager)|assembly (worker|operative)|machine operator|cnc (operator|machinist)|machinist|factory (worker|operative)|process operator|toolmaker|produktionshelfer|produktion|operai[oe]|oper[áa]ri[oa]|monteur|hygiene operator)s?\b/i,
     hint: /\b(manufacturing|production)\b/i,
   },
   {
