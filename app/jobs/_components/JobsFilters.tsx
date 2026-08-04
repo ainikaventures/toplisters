@@ -3,6 +3,10 @@
 import { useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { countryName } from "@/lib/format";
+import {
+  categoryLabel,
+  compareCategoriesForDisplay,
+} from "@/lib/classify/category";
 import { track } from "@/lib/analytics/track";
 import type { JobFilters, JobsFacets } from "../_data/query";
 
@@ -150,11 +154,16 @@ export function JobsFilters({
           value={filters.category}
           onChange={handleSelectChange}
         >
-          {facets.categories.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.value} ({c.count})
-            </option>
-          ))}
+          {/* Unclassified is relabelled and pinned last — it is one of the
+              biggest buckets, so leaving it in volume order buries the
+              categories people actually browse by. */}
+          {[...facets.categories]
+            .sort(compareCategoriesForDisplay)
+            .map((c) => (
+              <option key={c.value} value={c.value}>
+                {categoryLabel(c.value)} ({c.count})
+              </option>
+            ))}
         </SelectField>
       </FilterField>
 

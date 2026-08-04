@@ -39,7 +39,7 @@
  *  3. `engineer` NEVER MATCHED "Engineering" — `\bengineer\b` fails on the
  *     -ing form. That single gap accounted for the largest rescue bucket.
  *
- * Measured on the sampled titles: 304/907 (33.5%) of previously-"Other" rows
+ * Measured on the sampled titles: 327/907 (36.1%) of previously-"Other" rows
  * now classify, against 6 re-labellings — of which several are corrections
  * (a French IT role that had been landing in Hospitality via "Chef"). If you
  * extend this, re-sample and re-measure rather than eyeballing: a rule that
@@ -189,8 +189,23 @@ const RULES: CategoryRule[] = [
     hint: /\b(manufacturing|production)\b/i,
   },
   {
+    label: "Real Estate & Property",
+    title: /\b(estate agent|lettings? (negotiator|manager|consultant)|property (manager|consultant|administrator|advisor)|block manager|land (buyer|manager)|valuer|immobilier|makler)s?\b/i,
+    hint: /\b(real estate|property|lettings)\b/i,
+  },
+  {
+    label: "Sport, Leisure & Fitness",
+    title: /\b(lifeguard|personal trainer|fitness (instructor|coach|manager)|gym (manager|instructor)|swimming (teacher|instructor)|sports? (coach|therapist|scientist)|leisure (assistant|attendant|manager)|activity leader)s?\b/i,
+    hint: /\b(sport|fitness|leisure)\b/i,
+  },
+  {
+    label: "Agriculture & Environment",
+    title: /\b(agronom(y|ist)|agricultur(e|al)|horticultur(e|ist|al)|arborist|forestry|farm (manager|worker|hand|labourer)|gamekeeper|landscap(er|e gardener)|environmental (officer|consultant|advisor)|sustainability (manager|lead|analyst))s?\b/i,
+    hint: /\b(agriculture|farming|environment|sustainability)\b/i,
+  },
+  {
     label: "Science & Research",
-    title: /\b(scientist|research(er| associate| scientist| fellow)|laboratory|lab (technician|analyst|assistant)|chemist|biologist|microbiologist|biochemist|formulation|clinical research|\br&d\b|agronom|wissenschaftler|chercheur|investigador|ricercatore|laborant)s?\b/i,
+    title: /\b(scientist|research(er| associate| scientist| fellow)|laboratory|lab (technician|analyst|assistant)|chemist|biologist|microbiologist|biochemist|formulation|clinical research|\br&d\b|wissenschaftler|chercheur|investigador|ricercatore|laborant)s?\b/i,
     hint: /\b(science|scientific|research|laboratory|pharma)\b/i,
   },
   {
@@ -225,7 +240,7 @@ const RULES: CategoryRule[] = [
   },
   {
     label: "Operations & Management",
-    title: /\b(operations (manager|director|lead|coordinator|analyst)|\bcoo\b|chief operating|general manager|managing director|\bceo\b|programme manager|project manager|business (analyst|operations)|process improvement|continuous improvement|consultant|consultor|responsable|gesch[aä]ftsf[üu]hrer|leiter(in)?|projektleiter|betriebsleiter|teamleiter|gerente|direttore|chef de projet|chef d'[ée]quipe)s?\b/i,
+    title: /\b(operations (manager|director|lead|coordinator|analyst)|\bcoo\b|chief operating|general manager|managing director|\bceo\b|programme manager|project manager|business (analyst|operations)|process improvement|continuous improvement|consultant|consultor|founder|chief of staff|strategy (lead|director|manager|analyst)|venture (builder|partner)|due diligence|partnerships? (lead|director|manager)|responsable|gesch[aä]ftsf[üu]hrer|leiter(in)?|projektleiter|betriebsleiter|teamleiter|gerente|direttore|chef de projet|chef d'[ée]quipe)s?\b/i,
     hint: /\b(operations|management|consulting|business)\b/i,
   },
 ];
@@ -251,4 +266,39 @@ export function classifyCategory(input: ClassifyCategoryInput): string {
     }
   }
   return OTHER_CATEGORY;
+}
+
+/**
+ * How the "Other" bucket is presented to users.
+ *
+ * The stored value stays `OTHER_CATEGORY` — renaming it in the database
+ * would mean a migration plus a rewrite of every consumer for a cosmetic
+ * gain. Only the label changes.
+ *
+ * "Other" reads like a real category sitting alongside Healthcare and
+ * Sales, which invites the reader to assume those jobs have something in
+ * common. They don't — it is the bucket for listings whose title the
+ * classifier couldn't place. "Unclassified" says that, and says it about
+ * us rather than about the job.
+ */
+export const OTHER_CATEGORY_LABEL = "Unclassified";
+
+/** Display name for a stored category value. */
+export function categoryLabel(value: string): string {
+  return value === OTHER_CATEGORY ? OTHER_CATEGORY_LABEL : value;
+}
+
+/**
+ * Sort comparator that keeps the unclassified bucket last regardless of
+ * its count — it is usually one of the largest, and leading a
+ * volume-sorted facet with "Unclassified" buries the categories people
+ * actually browse by.
+ */
+export function compareCategoriesForDisplay(
+  a: { value: string; count: number },
+  b: { value: string; count: number },
+): number {
+  if (a.value === OTHER_CATEGORY) return 1;
+  if (b.value === OTHER_CATEGORY) return -1;
+  return b.count - a.count;
 }

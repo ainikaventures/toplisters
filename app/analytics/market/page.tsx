@@ -1,4 +1,8 @@
 import type { Metadata } from "next";
+import {
+  categoryLabel,
+  compareCategoriesForDisplay,
+} from "@/lib/classify/category";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { countryName } from "@/lib/format";
@@ -160,10 +164,13 @@ function MarketBody({
           subtitle="Share of active listings by category, including the unclassified bucket."
         >
           <HorizontalBars
-            data={p.categoryMix.map((c) => ({
-              label: c.name,
-              value: c.count,
-            }))}
+            data={[...p.categoryMix]
+              .map((c) => ({ value: c.name, count: c.count }))
+              .sort(compareCategoriesForDisplay)
+              .map((c) => ({
+                label: categoryLabel(c.value),
+                value: c.count,
+              }))}
             height={Math.max(260, p.categoryMix.length * 32)}
           />
         </Card>

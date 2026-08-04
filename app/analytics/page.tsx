@@ -1,4 +1,8 @@
 import type { Metadata } from "next";
+import {
+  categoryLabel,
+  compareCategoriesForDisplay,
+} from "@/lib/classify/category";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -44,10 +48,10 @@ export default async function AnalyticsPage({
     value: c.count,
     code: c.code,
   }));
-  const categoryBars = data.buckets.categories.map((c) => ({
-    label: c.name,
-    value: c.count,
-  }));
+  const categoryBars = [...data.buckets.categories]
+    .map((c) => ({ value: c.name, count: c.count }))
+    .sort(compareCategoriesForDisplay)
+    .map((c) => ({ label: categoryLabel(c.value), value: c.count }));
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
