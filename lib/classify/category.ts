@@ -79,17 +79,21 @@
  * description mentions "medical" (the medical exam) and scores Healthcare
  * above Transport.
  *
- * What would actually work is weighting terms by how DISCRIMINATIVE they
- * are rather than hand-listing role nouns — and there is already labelled
- * data for that: every row whose title matched confidently is a training
- * example. A Naive Bayes / logistic model over description text, trained on
- * those rows and shipped as a JSON weight artifact, stays free,
- * deterministic and worker-compatible. That needs a training run against
- * the production corpus, so it is a real project, not a rule tweak.
+ * That approach was then BUILT properly — see lib/classify/model. Naive
+ * Bayes over description tokens, trained on the 122,797 rows whose titles
+ * classify confidently, gated to the three languages where it clears 94%
+ * held-out precision. It is the third and final stage below.
+ *
+ * Its marginal contribution is small and worth stating plainly: over the
+ * improved rules it rescues ~2,700 further rows, about 1 point. The rules
+ * do the heavy lifting (11 points); the model is a precise top-up for
+ * titles that name no domain at all.
  *
  * Run `npm run reclassify-category -- --dry` to preview the effect on live
  * rows before applying.
  */
+
+import { classifyFromDescription } from "./model";
 
 interface CategoryRule {
   label: string;
@@ -256,6 +260,13 @@ export interface ClassifyCategoryInput {
   title: string;
   /** The raw category the source produced (used as a fallback hint). */
   category?: string | null;
+  /**
+   * Description body. When supplied, a trained model gets the last word
+   * before a row falls to "Other" — see lib/classify/model. Omit it and
+   * behaviour is exactly the title+hint rules, so existing callers that
+   * don't pass it are unaffected.
+   */
+  description?: string | null;
 }
 
 /** Map a job onto the canonical category taxonomy. Returns "Other" if unsure. */
@@ -283,6 +294,16 @@ export function classifyCategory(input: ClassifyCategoryInput): string {
       if (rule.hint && rule.hint.test(hint)) return rule.label;
     }
   }
+
+  // Last stage: the description model. It abstains on languages it wasn't
+  // validated for and whenever the top two classes are close, so reaching
+  // this line usually still means "Other" — which is the intent. It only
+  // speaks when it is confident.
+  if (input.description) {
+    const verdict = classifyFromDescription(input.description, title);
+    if (verdict.confident) return verdict.label;
+  }
+
   return OTHER_CATEGORY;
 }
 

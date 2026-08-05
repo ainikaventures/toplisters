@@ -19,23 +19,41 @@ import { classifyCategory, OTHER_CATEGORY } from "../lib/classify/category";
 (async () => {
   const dryRun = process.argv.includes("--dry");
 
-  const jobs = await prisma.job.findMany({
-    where: { isActive: true },
-    select: { id: true, title: true, category: true },
-  });
-
+  // Descriptions are needed for the model stage, and 280k full bodies will
+  // not fit in memory — page through by id and truncate to the 1,500 chars
+  // the model actually reads.
   const updates: { id: string; from: string; to: string }[] = [];
-  for (const job of jobs) {
-    const next = classifyCategory({ title: job.title, category: job.category });
-    if (next === job.category) continue;
-    updates.push({ id: job.id, from: job.category, to: next });
-  }
+  let scanned = 0;
+  let before = 0;
+  let after = 0;
+  let cursor: string | null = null;
 
-  const before = jobs.filter((j) => j.category === OTHER_CATEGORY).length;
-  const after = jobs.length - jobs.filter((j) => {
-    const next = classifyCategory({ title: j.title, category: j.category });
-    return next !== OTHER_CATEGORY;
-  }).length;
+  for (;;) {
+    const page: { id: string; title: string; category: string; descr: string | null }[] =
+      await prisma.$queryRaw`
+        SELECT id, title, category, left(description_text, 1500) AS descr
+        FROM jobs
+        WHERE is_active AND (${cursor}::text IS NULL OR id > ${cursor})
+        ORDER BY id
+        LIMIT 5000
+      `;
+    if (page.length === 0) break;
+    cursor = page[page.length - 1].id;
+
+    for (const job of page) {
+      scanned++;
+      if (job.category === OTHER_CATEGORY) before++;
+      const next = classifyCategory({
+        title: job.title,
+        category: job.category,
+        description: job.descr,
+      });
+      if (next === OTHER_CATEGORY) after++;
+      if (next === job.category) continue;
+      updates.push({ id: job.id, from: job.category, to: next });
+    }
+  }
+  const jobs = { length: scanned };
 
   const newCounts: Record<string, number> = {};
   for (const u of updates) newCounts[u.to] = (newCounts[u.to] ?? 0) + 1;
