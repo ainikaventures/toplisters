@@ -2,14 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { countryName } from "@/lib/format";
-
-const RANGE_OPTIONS: { value: string; label: string }[] = [
-  { value: "30", label: "Last 30 days" },
-  { value: "60", label: "Last 60 days" },
-  { value: "90", label: "Last 90 days" },
-  { value: "365", label: "Last year" },
-  { value: "all", label: "All time" },
-];
+import { DEFAULT_RANGE, RANGE_OPTIONS } from "../_data/ranges";
 
 /**
  * Auto-submitting filter bar. Same pattern as the listings filter:
@@ -32,7 +25,7 @@ export function AnalyticsFilters({
     const params = new URLSearchParams();
     const nextRange = next.range ?? range;
     const nextCountry = next.country ?? country ?? "";
-    if (nextRange !== "90") params.set("range", nextRange);
+    if (nextRange !== DEFAULT_RANGE) params.set("range", nextRange);
     if (nextCountry) params.set("country", nextCountry);
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
