@@ -8,9 +8,11 @@ import { getSource, jobAttribution } from "@/lib/sources";
 import { HeroBanner } from "./_components/HeroBanner";
 import { ApplyButton } from "./_components/ApplyButton";
 import { JobJsonLd } from "./_components/JobJsonLd";
+import { JobEngagement } from "./_components/JobEngagement";
 import { SimilarJobs } from "./_components/SimilarJobs";
 import { fetchSimilarJobs } from "./_data/related";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { AlertsCta } from "@/components/alerts/AlertsCta";
 import { BreadcrumbJsonLd } from "@/components/schema/BreadcrumbJsonLd";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/seo/Breadcrumbs";
 import { pageOpenGraph } from "@/lib/seo/og";
@@ -199,6 +201,7 @@ export default async function JobDetailPage({
               {job.workMode}
             </span>
           ) : null}
+          <JobEngagement views={job.viewCount} clicks={job.clickCount} />
         </div>
 
         <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -256,6 +259,21 @@ export default async function JobDetailPage({
       ) : null}
 
       <AdSlot placement="detail" />
+
+      <AlertsCta
+        className="mt-12"
+        defaultCountry={
+          job.countryCode && job.countryCode !== "ZZ"
+            ? job.countryCode
+            : undefined
+        }
+        regionLabel={
+          job.countryCode && job.countryCode !== "ZZ"
+            ? countryName(job.countryCode)
+            : null
+        }
+      />
+
       <SimilarJobs jobs={similar} />
     </article>
   );

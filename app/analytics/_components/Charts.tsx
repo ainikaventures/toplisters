@@ -72,6 +72,9 @@ export function HorizontalBars({
             dataKey="label"
             width={120}
             tickFormatter={formatTick}
+            // Show every category. Recharts otherwise thins the labels to
+            // fit, which silently mislabels bars on a tall list.
+            interval={0}
             {...AXIS_PROPS}
           />
           <Tooltip {...TOOLTIP_PROPS} />

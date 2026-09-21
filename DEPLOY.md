@@ -59,6 +59,7 @@ overridable with `INTERVAL_MIN_<SOURCE>` env vars.
 | Mark stale jobs inactive | daily 03:15 | `maintenance:mark-stale` | `npm run enqueue -- mark-stale` |
 | Email digests | daily 09:00 | `maintenance:send-digests` | `npm run send-digests` |
 | Social auto-posting | 08:30, 12:30, 17:30 | `maintenance:post-to-social` | `npm run post-to-social` (`-- --dry` to preview) |
+| Analytics rollups | daily 06:00 | `maintenance:refresh-analytics` | `npm run analytics:refresh` |
 
 **If you instead run these as Coolify Scheduled Tasks** (one-shot containers
 from the worker image, e.g. when running the worker without its internal
@@ -70,7 +71,44 @@ scheduler), use these cron expressions to match the above:
 15 3   * * *   npm run enqueue -- mark-stale
 0  9   * * *   npm run send-digests
 30 8,12,17 * * * npm run post-to-social
+0  6   * * *   npm run analytics:refresh
 ```
+
+`analytics:refresh` backs `/analytics/pipeline`, `/analytics/market` and
+`/analytics/engagement`, which read precomputed rows from
+`analytics_snapshots` instead of aggregating the jobs table per request. Run
+it **once by hand after the first deploy** — until it has run, those pages
+render an empty state rather than zeroes. It is scheduled last in the morning
+chain (after mark-stale, rebuild-companies and refresh-sponsors) so the
+snapshot reflects a settled dataset.
+
+**One-time after deploying the view counter:**
+
+```sh
+npm run backfill:view-counts      # add --dry to preview
+```
+
+`Job.viewCount` is a counter cache incremented by `/api/track` (the
+bot-filtered pageview beacon). Pageview rows remain the source of truth, so
+this rebuilds the column from history that predates the counter. It SETs
+absolute values rather than incrementing, so it is idempotent — safe to
+re-run any time you suspect drift. Not scheduled; run on demand.
+
+**One-time after deploying the escaped-HTML and classifier fixes:**
+
+```sh
+npm run fix:escaped-html          # add --dry to preview
+npm run reclassify-category       # add --dry to preview
+```
+
+`fix:escaped-html` repairs job descriptions that were stored entity-encoded
+(`&lt;p&gt;…`) and therefore rendered as literal `<p>` on the page — 21 of 60
+sampled live listings were affected. `cleanHtml` now un-escapes before
+sanitizing, so new ingests are correct; this rewrites existing rows.
+
+`reclassify-category` re-runs the category classifier over active jobs after
+its rule set was extended (multilingual titles, plurals, and the `engineer`
+vs "Engineering" gap). Both are idempotent.
 
 Do **not** run both the internal worker scheduler *and* external cron for the
 same task — pick one to avoid double-runs.

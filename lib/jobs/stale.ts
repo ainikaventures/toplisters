@@ -9,6 +9,10 @@ import {
   type VisaPathwayRecomputeStats,
 } from "@/lib/jobs/recompute-visa-pathways";
 import { rebuildCompanies, type CompanyRebuildStats } from "@/lib/companies/rebuild";
+import {
+  refreshAnalyticsSnapshots,
+  type RefreshResult as AnalyticsRefreshResult,
+} from "@/lib/analytics/rollup";
 
 const STALE_DAYS = 30;
 
@@ -19,6 +23,7 @@ export interface MaintenanceJobResult {
   sponsors?: SponsorRefreshStats;
   visaPathways?: VisaPathwayRecomputeStats;
   companies?: CompanyRebuildStats;
+  snapshots?: AnalyticsRefreshResult[];
   noop?: true;
 }
 
@@ -83,6 +88,13 @@ export function createMaintenanceWorker(): Worker<unknown, MaintenanceJobResult>
           const sponsors = await runSponsorRefresh();
           const visaPathways = await recomputeVisaPathways();
           return { sponsors, visaPathways };
+        }
+        case "refresh-analytics": {
+          // Precompute the /analytics/pipeline + /analytics/market rollups
+          // so those pages read one row instead of aggregating the whole
+          // jobs table per request. Pure DB work, safe to re-run.
+          const snapshots = await refreshAnalyticsSnapshots();
+          return { snapshots };
         }
         default:
           return { noop: true };
