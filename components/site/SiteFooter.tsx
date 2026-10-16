@@ -123,6 +123,12 @@ export async function SiteFooter() {
             </a>
           </span>
           <span aria-hidden="true">·</span>
+          {/* Required by Logo.dev's free plan; plain link (no noreferrer)
+              so referrer data passes, per their attribution rules. */}
+          <a href="https://www.logo.dev" target="_blank" rel="noopener" className="hover:text-foreground">
+            Logos provided by Logo.dev
+          </a>
+          <span aria-hidden="true">·</span>
           <ManageCookies />
         </div>
       </div>
