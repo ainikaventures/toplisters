@@ -113,6 +113,9 @@ export async function generateMetadata({
 
   const description = jobMetaDescription(job);
   const canonical = `${SITE_URL}/job/${job.id}/${slugify(job.title)}`;
+  // Explicit, or pageOpenGraph's site-card default would shadow the
+  // per-job card from ./opengraph-image.tsx.
+  const image = `/job/${job.id}/${slugify(job.title)}/opengraph-image`;
 
   return {
     title: `${job.title} — ${job.companyName}`,
@@ -122,7 +125,9 @@ export async function generateMetadata({
       title: `${job.title} at ${job.companyName}`,
       description,
       url: canonical,
+      image,
     }),
+    twitter: { card: "summary_large_image", images: [image] },
   };
 }
 

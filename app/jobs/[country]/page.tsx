@@ -52,6 +52,7 @@ export async function generateMetadata({
       ? "1 city"
       : `${result.data.cities.length} cities`;
   const url = `${SITE_URL}/jobs/${result.canonical}`;
+  const image = `/jobs/${result.canonical}/opengraph-image`;
   return {
     title: `${result.data.totalJobs} ${jobsLabel} in ${country}`,
     description: `Browse ${result.data.totalJobs.toLocaleString()} active ${rolesLabel} across ${citiesPhrase} in ${country}.`,
@@ -60,7 +61,9 @@ export async function generateMetadata({
       title: `${result.data.totalJobs} ${jobsLabel} in ${country}`,
       description: `Browse ${result.data.totalJobs.toLocaleString()} active ${rolesLabel} across ${citiesPhrase} in ${country}.`,
       url,
+      image,
     }),
+    twitter: { card: "summary_large_image", images: [image] },
   };
 }
 
