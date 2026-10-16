@@ -47,8 +47,11 @@ export async function pickJobsToPost(opts: {
   // this platform" via NOT EXISTS, then score in JS. Doing the score
   // ordering in SQL would be cleaner but the scoring rules are
   // expected to evolve more often than the SQL is worth maintaining.
-  const candidates = await prisma.$queryRaw<Job[]>`
-    SELECT j.*
+  // Raw SQL selects ids only: `j.*` would include the tsvector
+  // `search_vector` (undeserializable in $queryRaw) and return snake_case
+  // columns, not Job fields. findMany then loads proper Job rows.
+  const idRows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT j.id
     FROM jobs j
     WHERE j.is_active = true
       AND j.moderation_status = 'approved'
@@ -62,7 +65,11 @@ export async function pickJobsToPost(opts: {
     LIMIT ${CANDIDATE_LIMIT}
   `;
 
-  if (candidates.length === 0) return [];
+  if (idRows.length === 0) return [];
+
+  const candidates = await prisma.job.findMany({
+    where: { id: { in: idRows.map((r) => r.id) } },
+  });
 
   const scored = candidates
     .map((j) => ({ j, score: scoreJob(j) }))
