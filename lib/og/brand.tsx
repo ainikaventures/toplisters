@@ -11,6 +11,8 @@ import sharp from "sharp";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://toplisters.xyz").replace(/\/$/, "");
+
 export const OG_COLORS = {
   bg: "#0E1116",
   fg: "#F6F4EE",
@@ -75,7 +77,11 @@ export function flagEmoji(cc: string | null | undefined): string {
 export async function logoDataUri(url: string | null | undefined): Promise<string | null> {
   if (!url) return null;
   try {
-    const input = Buffer.from(await fetchBuffer(url, 4000));
+    // Logo.dev publishable keys are domain-restricted: without our Referer
+    // the server-side fetch is a 401 and every card falls back to initials.
+    const input = Buffer.from(
+      await fetchBuffer(url, 4000, { Referer: `${SITE_URL}/`, "User-Agent": "Toplisters/1.0 (+https://toplisters.xyz)" }),
+    );
     const png = await sharp(input)
       .resize(256, 256, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } })
       .flatten({ background: "#ffffff" })
@@ -162,8 +168,12 @@ async function fetchText(url: string): Promise<string> {
   return res.text();
 }
 
-async function fetchBuffer(url: string, timeoutMs = 6000): Promise<ArrayBuffer> {
-  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+async function fetchBuffer(
+  url: string,
+  timeoutMs = 6000,
+  headers?: Record<string, string>,
+): Promise<ArrayBuffer> {
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
   if (!res.ok) throw new Error(`${res.status} ${url}`);
   return res.arrayBuffer();
 }
