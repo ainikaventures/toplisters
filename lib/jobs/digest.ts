@@ -6,6 +6,7 @@ import {
   type Subscriber,
 } from "@/lib/generated/prisma/client";
 import { slugify } from "@/lib/slug";
+import { TELEGRAM_CHANNEL_URL } from "@/lib/social/links";
 import { countryName, locationLabel, salaryLabel } from "@/lib/format";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://toplisters.xyz";
@@ -182,6 +183,11 @@ function renderDigest(sub: Subscriber, jobs: Job[]): RenderedDigest {
     <tr><td style="padding:8px 24px 24px 24px;">
       ${htmlJobs}
     </td></tr>
+    <tr><td style="padding:0 24px 20px 24px;">
+      <p style="margin:0;font-size:14px;color:#333;">
+        Want jobs as they land? <a href="${escape(TELEGRAM_CHANNEL_URL)}" style="color:#1F6FEB;font-weight:600;text-decoration:none;">Join our Telegram channel →</a>
+      </p>
+    </td></tr>
     <tr><td style="padding:16px 24px 24px 24px;border-top:1px solid #eee;font-size:12px;color:#666;">
       <p style="margin:0 0 8px 0;">You're receiving this because you subscribed to alerts at ${escape(SITE_URL)}.</p>
       <p style="margin:0;">
@@ -198,6 +204,8 @@ function renderDigest(sub: Subscriber, jobs: Job[]): RenderedDigest {
     `Toplisters digest — ${count} new ${count === 1 ? "role" : "roles"} matching ${filterLine}`,
     "",
     textJobs,
+    "",
+    `Jobs as they land, on Telegram: ${TELEGRAM_CHANNEL_URL}`,
     "",
     `Update preferences: ${manageUrl}`,
     `Unsubscribe: ${unsubUrl}`,
