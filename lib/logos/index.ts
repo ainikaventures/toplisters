@@ -1,7 +1,8 @@
 // Server-only path. Reachable from Next route handlers AND tsx CLI
 // scripts (npm run source / worker), so we skip the `server-only` import.
 import { prisma } from "@/lib/db";
-import { searchBrand, buildLogoImgUrl } from "./logodev";
+import { searchBrand } from "./logodev";
+import { normalizeLogoDomain, selfHostedLogoUrl } from "./store";
 
 /** ms; how long a cached miss (no logo found) is trusted before retrying. */
 const NEGATIVE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -42,10 +43,10 @@ export async function resolveCompanyLogo(
   }
 
   const match = await searchBrand(companyName);
-  const domain = match?.domain ?? null;
-  const imgUrl = domain
-    ? match?.logo_url ?? buildLogoImgUrl(domain, { format: "png", size: 256 })
-    : null;
+  const domain = match?.domain ? normalizeLogoDomain(match.domain) : null;
+  // Our own /logos/<domain> (downloaded once via the API on first view),
+  // never the img.logo.dev CDN — see lib/logos/store.ts.
+  const imgUrl = domain ? selfHostedLogoUrl(domain) : null;
 
   await prisma.companyLogo.upsert({
     where: { normalizedName: normalized },

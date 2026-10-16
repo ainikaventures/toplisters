@@ -201,6 +201,23 @@ model CompanyLogo {
   @@map("company_logos")
 }
 
+// Self-hosted logo files (Logo.dev's self-hosting flow): each domain's logo is
+// downloaded ONCE via the Logo.dev API, stored here, and served from
+// /logos/<domain> — browsers and server-side renderers never hit Logo.dev's
+// CDN. `bytes` null = known miss (brand unindexed / no logo), retried once
+// `checkedAt` is a day old. `etag` lets the periodic re-check skip unchanged
+// logos.
+model StoredLogo {
+  domain      String    @id
+  contentType String?   @map("content_type")
+  bytes       Bytes?
+  etag        String?
+  fetchedAt   DateTime? @map("fetched_at")
+  checkedAt   DateTime  @default(now()) @map("checked_at")
+
+  @@map("stored_logos")
+}
+
 // Company directory — aggregated from active jobs (one row per employer, with
 // their locations, logo, categories and open-role count). Rebuilt daily by
 // `npm run rebuild-companies`. `companyNames` holds the raw name variants that

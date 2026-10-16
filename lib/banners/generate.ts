@@ -4,8 +4,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import { Vibrant } from "node-vibrant/node";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://toplisters.xyz";
+import { loadLogoBytes } from "@/lib/logos/store";
 
 // Banner dimensions per the user's listing-vs-detail brief: 1000 × 350 max.
 // Logo target height leaves comfortable padding at top + bottom.
@@ -86,10 +85,6 @@ function pickPalette(
  * cached publicPath when the file already exists. Returns null on any
  * fetch / decode / write failure so callers can fall back to the gradient
  * placeholder cleanly.
- *
- * Logo.dev's publishable-key endpoint (img.logo.dev) is referrer-locked,
- * so we set a Referer header matching our site origin — without it, the
- * server-side fetch comes back as 401 even when the browser would succeed.
  */
 export async function generateBanner(
   companyName: string,
@@ -105,22 +100,10 @@ export async function generateBanner(
     /* generate below */
   }
 
-  let response: Response;
-  try {
-    response = await fetch(logoUrl, {
-      headers: { Referer: SITE_URL, "User-Agent": "Toplisters/1.0 (banner-gen)" },
-    });
-  } catch {
-    return null;
-  }
-  if (!response.ok) return null;
-
-  let logoBuffer: Buffer;
-  try {
-    logoBuffer = Buffer.from(await response.arrayBuffer());
-  } catch {
-    return null;
-  }
+  // Self-hosted logos come from the store (no server-side Logo.dev CDN
+  // fetch); logos a source ships itself are fetched directly.
+  const logoBuffer = await loadLogoBytes(logoUrl, 10_000);
+  if (!logoBuffer) return null;
 
   // Normalise to PNG up-front. sharp transparently rasterises SVG and
   // converts WebP/AVIF, which node-vibrant otherwise can't read.
