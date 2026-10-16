@@ -26,6 +26,10 @@ const EXPERIENCE_MONTHS: Record<string, number> = {
   exec: 120,
 };
 
+// Sources whose terms forbid submitting their jobs to Google Jobs (Remotive's
+// API terms name Google Jobs explicitly). No JobPosting markup for these.
+const NO_GOOGLE_JOBS_SOURCES = new Set(["remotive"]);
+
 /**
  * JSON-LD JobPosting (schema.org) — required for Google for Jobs eligibility.
  * Only fields we have are emitted; partial data is accepted, missing optional
@@ -33,6 +37,7 @@ const EXPERIENCE_MONTHS: Record<string, number> = {
  * and applicantLocationRequirements per Google's remote-jobs guidance.
  */
 export function JobJsonLd({ job, siteUrl }: { job: Job; siteUrl: string }) {
+  if (NO_GOOGLE_JOBS_SOURCES.has(job.source)) return null;
   const employmentType = EMPLOYMENT_TYPE[job.jobType] ?? null;
   const salaryUnit = job.salaryPeriod ? SALARY_UNIT[job.salaryPeriod] : null;
   const isRemote = job.workMode === "remote";
