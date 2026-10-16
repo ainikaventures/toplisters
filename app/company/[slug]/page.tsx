@@ -48,7 +48,13 @@ export async function generateMetadata({
     title: `${company.name} jobs`,
     description: desc,
     alternates: { canonical: `/company/${company.slug}` },
-    openGraph: pageOpenGraph({ title: `Jobs at ${company.name}`, description: desc, url: `/company/${company.slug}` }),
+    openGraph: pageOpenGraph({
+      title: `Jobs at ${company.name}`,
+      description: desc,
+      url: `/company/${company.slug}`,
+      image: `/company/${company.slug}/opengraph-image`,
+    }),
+    twitter: { card: "summary_large_image", images: [`/company/${company.slug}/opengraph-image`] },
   };
 }
 
