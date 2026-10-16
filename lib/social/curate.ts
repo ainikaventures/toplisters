@@ -57,9 +57,14 @@ export async function pickJobsToPost(opts: {
       AND j.moderation_status = 'approved'
       AND j.posted_date >= ${since}
       AND (j.source = ANY(${SOCIAL_SAFE_SOURCES}) OR j.is_user_submitted = true)
+      -- Never posted to this platform — matched on company + title, not
+      -- id, so the same role listed in several locations posts once.
       AND NOT EXISTS (
         SELECT 1 FROM social_posts sp
-        WHERE sp.job_id = j.id AND sp.platform = ${opts.platform}
+        JOIN jobs pj ON pj.id = sp.job_id
+        WHERE sp.platform = ${opts.platform}
+          AND lower(pj.company_name) = lower(j.company_name)
+          AND lower(pj.title) = lower(j.title)
       )
     ORDER BY j.is_featured DESC, j.posted_date DESC
     LIMIT ${CANDIDATE_LIMIT}
@@ -75,9 +80,20 @@ export async function pickJobsToPost(opts: {
     .map((j) => ({ j, score: scoreJob(j) }))
     .sort((a, b) => b.score - a.score);
 
+  // Same role in several locations → keep only the best-scored listing.
+  const seen = new Set<string>();
+  const unique = scored
+    .map((s) => s.j)
+    .filter((j) => {
+      const key = `${j.companyName.toLowerCase()}|${j.title.toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
   // Take the top-N, but interleave by country so we don't post three
   // UK jobs in a row when the candidate pool skews UK-heavy.
-  return roundRobinByCountry(scored.map((s) => s.j), opts.count);
+  return roundRobinByCountry(unique, opts.count);
 }
 
 function scoreJob(job: Job): number {
