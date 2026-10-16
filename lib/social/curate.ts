@@ -6,6 +6,7 @@ import type { Job } from "@/lib/generated/prisma/client";
  *   - active, approved
  *   - posted within the last 14 days (older = stale)
  *   - has NOT been posted to this platform before (unique gate)
+ *   - licence-free source only (see SOCIAL_SAFE_SOURCES)
  *   - quality scoring nudges salary-bearing + clean-description jobs up
  *
  * We deliberately don't try to be clever about country/category mix in
@@ -16,6 +17,23 @@ import type { Job } from "@/lib/generated/prisma/client";
  */
 const FRESHNESS_DAYS = 14;
 const CANDIDATE_LIMIT = 120;
+
+/**
+ * Sources we may republish to social without a licence or fee: employers'
+ * own public ATS boards + Workable's distribution board (info/COMPLIANCE.md).
+ * User-submitted jobs (our own data) are allowed separately. Licensed /
+ * personal-use feeds (Adzuna, Reed, Jooble, Findwork, The Muse) and open
+ * feeds with unclear or restrictive reuse terms (Arbeitnow, RemoteOK,
+ * Remotive — the latter bans redistribution) are never posted.
+ */
+const SOCIAL_SAFE_SOURCES: string[] = [
+  "greenhouse",
+  "lever",
+  "ashby",
+  "smartrecruiters",
+  "workday",
+  "workable",
+];
 
 export async function pickJobsToPost(opts: {
   platform: string;
@@ -35,6 +53,7 @@ export async function pickJobsToPost(opts: {
     WHERE j.is_active = true
       AND j.moderation_status = 'approved'
       AND j.posted_date >= ${since}
+      AND (j.source = ANY(${SOCIAL_SAFE_SOURCES}) OR j.is_user_submitted = true)
       AND NOT EXISTS (
         SELECT 1 FROM social_posts sp
         WHERE sp.job_id = j.id AND sp.platform = ${opts.platform}
