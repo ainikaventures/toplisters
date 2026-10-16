@@ -45,3 +45,6 @@ next-env.d.ts
 
 # misc local
 *.log
+
+# Playwright MCP screenshots/snapshots (may contain secrets)
+.playwright-mcp/
