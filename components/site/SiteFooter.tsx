@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ManageCookies } from "@/components/consent/ManageCookies";
 import { getTopCountries } from "@/lib/seo/internal-links";
+import { TELEGRAM_CHANNEL_URL } from "@/lib/social/links";
 
 /**
  * Shared footer for /jobs/*, /job/* and the standalone content routes.
@@ -44,6 +45,14 @@ export async function SiteFooter() {
           <Link href="/alerts" className="hover:text-foreground">
             Email alerts
           </Link>
+          <a
+            href={TELEGRAM_CHANNEL_URL}
+            target="_blank"
+            rel="noopener"
+            className="hover:text-foreground"
+          >
+            Telegram channel
+          </a>
           <Link href="/about" className="hover:text-foreground">
             About
           </Link>
