@@ -4,7 +4,6 @@
 // also reachable from tsx CLI scripts that don't go through Next.
 
 const SEARCH_ENDPOINT = "https://api.logo.dev/search";
-const IMG_BASE = "https://img.logo.dev";
 
 export interface LogoDevSearchResult {
   /** Brand display name */
@@ -51,21 +50,4 @@ export async function searchBrand(query: string): Promise<LogoDevSearchResult | 
   const top = data[0];
   if (!top?.domain) return null;
   return top;
-}
-
-/**
- * Build a public image URL for a domain. Uses the publishable key so the URL
- * is safe to embed in <img src> directly. Format / size params follow
- * Logo.dev's documented query string: `format` (png|jpg|webp), `size` (px).
- */
-export function buildLogoImgUrl(
-  domain: string,
-  options: { format?: "png" | "jpg" | "webp"; size?: number } = {},
-): string | null {
-  const pk = process.env.LOGO_DEV_PUBLISHABLE_KEY;
-  if (!pk) return null;
-  const params = new URLSearchParams({ token: pk });
-  if (options.format) params.set("format", options.format);
-  if (options.size) params.set("size", String(options.size));
-  return `${IMG_BASE}/${encodeURIComponent(domain)}?${params.toString()}`;
 }

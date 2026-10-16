@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import { loadLogoBytes } from "@/lib/logos/store";
 
 /**
  * Shared brand kit for the dynamic OG/share cards (job, country, company).
@@ -10,8 +11,6 @@ import sharp from "sharp";
  */
 
 export const OG_SIZE = { width: 1200, height: 630 };
-
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://toplisters.xyz").replace(/\/$/, "");
 
 export const OG_COLORS = {
   bg: "#0E1116",
@@ -77,11 +76,10 @@ export function flagEmoji(cc: string | null | undefined): string {
 export async function logoDataUri(url: string | null | undefined): Promise<string | null> {
   if (!url) return null;
   try {
-    // Logo.dev publishable keys are domain-restricted: without our Referer
-    // the server-side fetch is a 401 and every card falls back to initials.
-    const input = Buffer.from(
-      await fetchBuffer(url, 4000, { Referer: `${SITE_URL}/`, "User-Agent": "Toplisters/1.0 (+https://toplisters.xyz)" }),
-    );
+    // Self-hosted logos come straight from the store — never a server-side
+    // fetch of Logo.dev's CDN (not fair use; see lib/logos/store.ts).
+    const input = await loadLogoBytes(url);
+    if (!input) return null;
     const png = await sharp(input)
       .resize(256, 256, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } })
       .flatten({ background: "#ffffff" })
@@ -168,12 +166,8 @@ async function fetchText(url: string): Promise<string> {
   return res.text();
 }
 
-async function fetchBuffer(
-  url: string,
-  timeoutMs = 6000,
-  headers?: Record<string, string>,
-): Promise<ArrayBuffer> {
-  const res = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
+async function fetchBuffer(url: string, timeoutMs = 6000): Promise<ArrayBuffer> {
+  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
   if (!res.ok) throw new Error(`${res.status} ${url}`);
   return res.arrayBuffer();
 }
