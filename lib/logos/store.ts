@@ -1,6 +1,7 @@
 // Server-only path (DB + secret key). Reachable from Next route handlers AND
 // tsx CLI scripts / the worker, so we skip the `server-only` import.
 import { prisma } from "@/lib/db";
+import { logoDevPaused, noteLogoDevStatus } from "./breaker";
 
 /**
  * Self-hosted company logos, per Logo.dev's self-hosting guidance
@@ -92,7 +93,11 @@ async function loadLogo(domain: string): Promise<LogoFile | null> {
   if (stored && age < REFRESH_AFTER_MS) return stored;
   if (row && !stored && age < MISS_RETRY_MS) return null;
 
-  const fresh = await downloadFromApi(domain, row?.etag ?? null).catch(() => null);
+  const fresh = await downloadFromApi(domain, row?.etag ?? null).catch(() => "error" as const);
+
+  // Quota exhausted / outage: we learned nothing — serve what we have and
+  // record nothing, so the logo is retried once Logo.dev is back.
+  if (fresh === "error") return stored;
 
   if (fresh === "unchanged") {
     await touch(domain);
@@ -130,15 +135,17 @@ async function touch(domain: string) {
 async function downloadFromApi(
   domain: string,
   prevEtag: string | null,
-): Promise<"unchanged" | { file: LogoFile; row: { bytes: Uint8Array<ArrayBuffer>; contentType: string; etag: string | null; fetchedAt: Date } } | null> {
+): Promise<"unchanged" | "error" | { file: LogoFile; row: { bytes: Uint8Array<ArrayBuffer>; contentType: string; etag: string | null; fetchedAt: Date } } | null> {
   const key = process.env.LOGO_DEV_SECRET_KEY;
-  if (!key) return null;
+  if (!key || logoDevPaused()) return "error";
 
   const res = await fetch(`${API}?domain=${encodeURIComponent(domain)}`, {
     headers: { Authorization: `Bearer ${key}` },
     signal: AbortSignal.timeout(8000),
   });
-  if (res.status !== 200) return null; // 202 = still indexing → retry later
+  noteLogoDevStatus(res.status);
+  if (res.status === 402 || res.status === 429 || res.status >= 500) return "error";
+  if (res.status !== 200) return null; // 202 = still indexing, 404 = unknown → miss, retry in a day
   const body = (await res.json()) as { data?: { url?: string; etag?: string } };
   const downloadUrl = body.data?.url;
   const etag = body.data?.etag ?? null;

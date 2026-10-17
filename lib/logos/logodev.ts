@@ -3,6 +3,8 @@
 // "use client" component; we skip the `server-only` import so the file is
 // also reachable from tsx CLI scripts that don't go through Next.
 
+import { logoDevPaused, noteLogoDevStatus } from "./breaker";
+
 const SEARCH_ENDPOINT = "https://api.logo.dev/search";
 
 export interface LogoDevSearchResult {
@@ -15,7 +17,7 @@ export interface LogoDevSearchResult {
 }
 
 /**
- * Look up a brand by its display name. Returns the top match or null.
+ * Look up a brand by its display name.
  *
  * Logo.dev's search ranks by name similarity + brand prominence; first
  * result is almost always the right one for unique names ("Vonage",
@@ -23,31 +25,38 @@ export interface LogoDevSearchResult {
  * — we accept that here since the alternative (asking the user to
  * disambiguate per-company) is intractable for an aggregator.
  *
- * Returns null on no-match, network error, missing key, or 429 — caller
- * caches null too so we don't retry every aggregation cycle.
+ * "none" = Logo.dev answered and has no match (safe to cache). "error" =
+ * we don't know (quota exhausted, rate-limited, network, missing key) —
+ * callers must NOT cache it as "no logo".
  */
-export async function searchBrand(query: string): Promise<LogoDevSearchResult | null> {
+export type BrandSearch =
+  | { kind: "match"; result: LogoDevSearchResult }
+  | { kind: "none" }
+  | { kind: "error" };
+
+export async function searchBrand(query: string): Promise<BrandSearch> {
   const key = process.env.LOGO_DEV_SECRET_KEY;
-  if (!key) return null;
+  if (!key || logoDevPaused()) return { kind: "error" };
 
   const url = `${SEARCH_ENDPOINT}?q=${encodeURIComponent(query)}`;
   let response: Response;
   try {
     response = await fetch(url, {
       headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
+      signal: AbortSignal.timeout(8000),
     });
   } catch {
-    return null;
+    return { kind: "error" };
   }
 
-  if (!response.ok) return null;
+  noteLogoDevStatus(response.status);
+  if (!response.ok) return { kind: "error" };
 
   const data = (await response.json().catch(() => null)) as
     | LogoDevSearchResult[]
     | null;
-  if (!Array.isArray(data) || data.length === 0) return null;
-
+  if (!Array.isArray(data)) return { kind: "error" };
   const top = data[0];
-  if (!top?.domain) return null;
-  return top;
+  if (!top?.domain) return { kind: "none" };
+  return { kind: "match", result: top };
 }
