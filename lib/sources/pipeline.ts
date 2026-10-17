@@ -79,10 +79,11 @@ async function processJob(
   }
 
   // Logo fallback: if the source didn't ship a logo URL (RemoteOK no longer
-  // does), look it up by company name via Logo.dev. Cached server-side, so
-  // each unique company costs at most one API call per ~30 days.
+  // does), use the company's domain when the source gave one, else look it
+  // up by name via Logo.dev. Cached server-side, so each unique company
+  // costs at most one search call per ~30 days (zero when the domain is known).
   const companyLogoUrl =
-    job.companyLogoUrl ?? (await resolveCompanyLogo(job.companyName));
+    job.companyLogoUrl ?? (await resolveCompanyLogo(job.companyName, job.companyDomain));
 
   // Re-classify collar type from title + category. Adapters that hardcode
   // "white" (RemoteOK, Arbeitnow, The Muse, etc.) keep their default for
