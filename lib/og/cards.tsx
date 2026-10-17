@@ -90,7 +90,15 @@ export function JobCard(props: {
   );
 }
 
-export function CountryCard(props: { iso: string | null; name: string; path: string; stat: string }) {
+export function CountryCard(props: {
+  iso: string | null;
+  name: string;
+  path: string;
+  stat: string;
+  /** Top hiring companies — shown as a logo strip when present. */
+  hiring?: { name: string; logo: string | null }[];
+}) {
+  const hiring = props.hiring ?? [];
   return (
     <div style={frame}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -108,13 +116,22 @@ export function CountryCard(props: { iso: string | null; name: string; path: str
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 28, fontSize: 24, color: OG_COLORS.muted, alignItems: "center" }}>
-        <span style={{ display: "flex" }}>Direct from employers</span>
-        <Dot />
-        <span style={{ display: "flex" }}>Updated daily</span>
-        <Dot />
-        <span style={{ display: "flex" }}>Free to apply</span>
-      </div>
+      {hiring.length ? (
+        <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
+          <span style={{ display: "flex", fontSize: 24, color: OG_COLORS.muted, marginRight: 8 }}>Hiring now</span>
+          {hiring.map((c) => (
+            <LogoTile key={c.name} src={c.logo} name={c.name} size={64} />
+          ))}
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 28, fontSize: 24, color: OG_COLORS.muted, alignItems: "center" }}>
+          <span style={{ display: "flex" }}>Direct from employers</span>
+          <Dot />
+          <span style={{ display: "flex" }}>Updated daily</span>
+          <Dot />
+          <span style={{ display: "flex" }}>Free to apply</span>
+        </div>
+      )}
     </div>
   );
 }

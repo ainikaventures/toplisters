@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { pickJobsToPost } from "./curate";
 import { enabledPlatforms } from "./index";
-import type { SocialPoster } from "./types";
+import type { CardPost, SocialPoster } from "./types";
+import { pickCompanyCards, pickCountryCards } from "./cards";
 
 /**
  * One pass of "post the next N jobs to each enabled platform." Designed
@@ -134,4 +135,89 @@ function startOfUtcDay(): Date {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export interface CardRunStats {
+  platform: string;
+  kind: CardPost["kind"];
+  posted: number;
+  failed: number;
+  /** Headlines (dry run) or post URLs (live), for the operator log. */
+  items: string[];
+}
+
+/** Card posts per platform per UTC day, by kind. Env-overridable. */
+function cardCap(kind: CardPost["kind"]): number {
+  const raw = process.env[kind === "country" ? "SOCIAL_COUNTRY_POSTS_PER_DAY" : "SOCIAL_COMPANY_POSTS_PER_DAY"];
+  const n = Number.parseInt(raw ?? "", 10);
+  return Number.isFinite(n) && n >= 0 ? n : 1;
+}
+
+/**
+ * One pass of card posts (country digest + company spotlight) to every
+ * enabled platform that supports `postCard`. Daily caps come from
+ * SOCIAL_COUNTRY_POSTS_PER_DAY / SOCIAL_COMPANY_POSTS_PER_DAY (default 1).
+ */
+export async function runCardPosting(opts: { dryRun?: boolean } = {}): Promise<CardRunStats[]> {
+  const stats: CardRunStats[] = [];
+  for (const platform of enabledPlatforms()) {
+    if (!platform.postCard) continue;
+    for (const kind of ["country", "company"] as const) {
+      const stat: CardRunStats = { platform: platform.platform, kind, posted: 0, failed: 0, items: [] };
+      stats.push(stat);
+
+      const postedToday = await prisma.socialCardPost.count({
+        where: { platform: platform.platform, kind, status: "posted", postedAt: { gte: startOfUtcDay() } },
+      });
+      const remaining = Math.max(0, cardCap(kind) - postedToday);
+      const cards =
+        kind === "country"
+          ? await pickCountryCards(platform.platform, remaining)
+          : await pickCompanyCards(platform.platform, remaining);
+
+      for (const card of cards) {
+        const withUtm = { ...card, linkUrl: addUtm(card.linkUrl, platform.platform, kind) };
+        if (opts.dryRun) {
+          console.log(`[${platform.platform}] DRY-RUN ${kind}: ${card.headline} — ${card.lines.join(" / ")}`);
+          stat.items.push(card.headline);
+          stat.posted++;
+          continue;
+        }
+        try {
+          const result = await platform.postCard(withUtm);
+          await prisma.socialCardPost.create({
+            data: {
+              platform: platform.platform,
+              kind,
+              key: card.key,
+              status: "posted",
+              externalId: result.externalId,
+              externalUrl: result.externalUrl,
+            },
+          });
+          stat.posted++;
+          stat.items.push(result.externalUrl ?? card.headline);
+          await sleep(30_000);
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          await prisma.socialCardPost
+            .create({
+              data: { platform: platform.platform, kind, key: card.key, status: "failed", errorMessage: errorMessage.slice(0, 500) },
+            })
+            .catch(() => null);
+          stat.failed++;
+          console.error(`[${platform.platform}] ${kind} card failed for ${card.key}: ${errorMessage}`);
+        }
+      }
+    }
+  }
+  return stats;
+}
+
+function addUtm(url: string, source: string, campaign: string): string {
+  const u = new URL(url);
+  u.searchParams.set("utm_source", source);
+  u.searchParams.set("utm_medium", "social");
+  u.searchParams.set("utm_campaign", campaign);
+  return u.toString();
 }
