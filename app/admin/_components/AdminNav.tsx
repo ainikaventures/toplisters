@@ -6,6 +6,7 @@ const TABS: { href: string; label: string }[] = [
   { href: "/admin/inbox", label: "Recruiter inbox" },
   { href: "/admin/coverage", label: "Direct coverage" },
   { href: "/admin/bullmq", label: "Queues" },
+  { href: "/admin/telegram", label: "Telegram bot" },
 ];
 
 /**

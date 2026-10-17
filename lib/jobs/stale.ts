@@ -60,6 +60,10 @@ export function createMaintenanceWorker(): Worker<unknown, MaintenanceJobResult>
             where: { isActive: true, lastSeenAt: { lt: cutoff } },
             data: { isActive: false },
           });
+          // Telegram bot usage log: 90-day retention (see /privacy).
+          await prisma.telegramBotEvent
+            .deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } } })
+            .catch(() => null);
           return { deactivated: result.count };
         }
         case "rebuild-companies": {
