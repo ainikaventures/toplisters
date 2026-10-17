@@ -66,6 +66,17 @@ export default function PrivacyPage() {
           without keeping anything that could re-identify you.
         </p>
 
+        <h3 className="mt-6 text-base font-semibold">
+          Searching with our Telegram bot
+        </h3>
+        <p className="mt-2 text-sm text-foreground/80">
+          When you search with @toplisters_jobs_bot we log your Telegram
+          user ID, username, what you searched and how many results came
+          back. We use it only to keep the bot fast and to stop automated
+          scraping (rate limits and temporary blocks). Kept 90 days, then
+          deleted. Never sold.
+        </p>
+
         <h3 className="mt-6 text-base font-semibold">Posting a job</h3>
         <p className="mt-2 text-sm text-foreground/80">
           The email you provide is used only to send the magic-link

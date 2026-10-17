@@ -20,6 +20,7 @@
     "deactivate-appcast": "tsx scripts/deactivate-appcast.ts",
     "send-digests": "tsx scripts/send-digests.ts",
     "post-to-social": "tsx scripts/post-to-social.ts",
+    "telegram:setup": "tsx scripts/telegram-setup.ts",
     "apikey": "tsx scripts/apikey.ts",
     "sponsors:refresh": "tsx scripts/refresh-sponsors.ts",
     "visa-pathways:refresh": "tsx scripts/recompute-visa-pathways.ts",

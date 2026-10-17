@@ -424,3 +424,22 @@ model EmailMessage {
   @@index([threadId, createdAt])
   @@map("email_messages")
 }
+
+// Telegram bot usage log (search bot @toplisters_jobs_bot) — one row per
+// handled update. Powers /admin/telegram (heavy users, auto-blocks) so
+// scraping by a scripted account is visible. `userId` is Telegram's numeric
+// user id; rows older than 90 days are purged by the daily stale sweep.
+model TelegramBotEvent {
+  id        BigInt   @id @default(autoincrement())
+  userId    String   @map("user_id")
+  username  String?
+  /// "search" | "command" | "inline" | "more" | "limited" | "blocked"
+  kind      String
+  query     String?
+  results   Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("telegram_bot_events")
+}
