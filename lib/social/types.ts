@@ -20,6 +20,34 @@ export interface SocialPoster {
    * for manual posts. Telegram is essentially unlimited but spammy >5/day.
    */
   dailyCap(): number;
+  /**
+   * Post an image card (country digest / company spotlight). Optional —
+   * platforms without it are skipped for card posts.
+   */
+  postCard?(card: CardPost): Promise<SocialPostResult>;
+}
+
+/**
+ * A card post: a branded share-card image (lib/og) with a caption, linking
+ * to a country or company page. Posted as a photo rather than a link so the
+ * flag / logo is the hero of the post, not a small link preview.
+ */
+export interface CardPost {
+  kind: "country" | "company";
+  /** ISO-2 country or company slug — the cooldown key. */
+  key: string;
+  /** Absolute URL of the card PNG (fetched by the platform). */
+  imageUrl: string;
+  /** Page the card links to. */
+  linkUrl: string;
+  /** Bold first line. */
+  headline: string;
+  /** Plain-text body lines under the headline. */
+  lines: string[];
+  /** Call-to-action label for linkUrl. */
+  cta: string;
+  /** Lowercase, no # — adapters add the prefix. */
+  hashtags: string[];
 }
 
 export interface SocialPostResult {

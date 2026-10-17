@@ -1,13 +1,13 @@
 import { ImageResponse } from "next/og";
 import { countryName } from "@/lib/format";
 import { countryToSlug, resolveCountrySlug } from "@/lib/locations";
-import { OG_SIZE, ogOptions } from "@/lib/og/brand";
+import { logoDataUri, OG_SIZE, ogOptions } from "@/lib/og/brand";
 import { CountryCard } from "@/lib/og/cards";
-import { licenceFreeCounts, roundedCount } from "@/lib/og/counts";
+import { licenceFreeCounts, roundedCount, topHiringCompanies } from "@/lib/og/counts";
 
 /**
- * Country share card: flag + "Jobs in India" + a fresh-jobs stat, in the
- * Toplisters brand. Used when /jobs/<country> is shared (social posts,
+ * Country share card: flag + "Jobs in India" + a fresh-jobs stat + a strip of
+ * the top hiring companies' logos, in the Toplisters brand. Used when /jobs/<country> is shared (social posts,
  * chat unfurls). The stat counts licence-free sources only — see
  * lib/og/counts.ts for why it can be lower than the on-page total.
  */
@@ -24,7 +24,18 @@ export default async function CountryOgImage({
 }) {
   const { country: slug } = await params;
   const iso = resolveCountrySlug(slug);
-  const counts = iso ? await licenceFreeCounts({ countryCode: iso }) : { today: 0, active: 0 };
+  const [counts, top, options] = await Promise.all([
+    iso ? licenceFreeCounts({ countryCode: iso }) : Promise.resolve({ today: 0, active: 0 }),
+    iso ? topHiringCompanies(iso, 6) : Promise.resolve([]),
+    ogOptions(),
+  ]);
+  // Logo strip: only companies whose logo actually loads (initials tiles in a
+  // "hiring now" row read as noise), up to 5.
+  const hiring = (
+    await Promise.all(top.map(async (c) => ({ name: c.name, logo: await logoDataUri(c.logoUrl) })))
+  )
+    .filter((c) => c.logo)
+    .slice(0, 5);
 
   const stat =
     counts.today >= 5
@@ -40,8 +51,9 @@ export default async function CountryOgImage({
         name={iso ? countryName(iso) : "your country"}
         path={`/jobs/${iso ? countryToSlug(iso) : slug}`}
         stat={stat}
+        hiring={hiring}
       />
     ),
-    await ogOptions(),
+    options,
   );
 }

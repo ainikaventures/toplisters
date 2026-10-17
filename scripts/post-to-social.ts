@@ -8,6 +8,8 @@
  *   npm run post-to-social               # post N jobs to every enabled platform
  *   npm run post-to-social -- --dry      # show what would be posted, no API calls
  *   npm run post-to-social -- --max 1    # cap to 1 post/platform this run
+ *   npm run post-to-social -- --cards    # country digest + company spotlight posts instead
+ *   npm run post-to-social -- --cards --dry
  *
  * Platform enablement is driven by env vars — see .env.example
  * SOCIAL_FACEBOOK_ENABLED / SOCIAL_TELEGRAM_ENABLED / SOCIAL_TWITTER_ENABLED.
@@ -15,7 +17,7 @@
 
 import "dotenv/config";
 import { prisma } from "../lib/db";
-import { runSocialPosting } from "../lib/social/runner";
+import { runCardPosting, runSocialPosting } from "../lib/social/runner";
 import { SOCIAL_PLATFORMS, enabledPlatforms } from "../lib/social";
 
 (async () => {
@@ -33,6 +35,16 @@ import { SOCIAL_PLATFORMS, enabledPlatforms } from "../lib/social";
     console.log(
       `→ No platforms enabled. Set SOCIAL_*_ENABLED=1 and the required tokens. Status: ${off}`,
     );
+    await prisma.$disconnect();
+    return;
+  }
+
+  if (args.includes("--cards")) {
+    console.log(`→ Running card posts${dryRun ? " (dry run)" : ""}…`);
+    const cardStats = await runCardPosting({ dryRun });
+    for (const s of cardStats) {
+      console.log(`  ${s.platform} ${s.kind}: posted=${s.posted} failed=${s.failed} ${s.items.join(" | ")}`);
+    }
     await prisma.$disconnect();
     return;
   }

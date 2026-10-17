@@ -98,7 +98,7 @@ function hashtagsFor(job: Job): string[] {
   return Array.from(new Set(tags));
 }
 
-function countryHashtag(iso2: string): string {
+export function countryHashtag(iso2: string): string {
   // Use country name when it's a single word (#Germany), else fall back
   // to "jobsin" + iso2 (#jobsinDE). #UnitedKingdom is fine as one tag.
   const name = countryName(iso2).replace(/[^a-zA-Z]/g, "");

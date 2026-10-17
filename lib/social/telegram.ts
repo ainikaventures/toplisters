@@ -1,6 +1,6 @@
 import type { Job } from "@/lib/generated/prisma/client";
 import { composePost } from "./compose";
-import type { SocialPoster, SocialPostResult } from "./types";
+import type { CardPost, SocialPoster, SocialPostResult } from "./types";
 
 /**
  * Telegram channel poster via Bot API. Highest ROI per minute of effort
@@ -86,6 +86,44 @@ export const telegram: SocialPoster = {
     const messageId = data.result.message_id;
     const username =
       data.result.chat?.username ?? channelId.replace(/^@/, "");
+    return {
+      externalId: String(messageId),
+      externalUrl: username ? `https://t.me/${username}/${messageId}` : null,
+    };
+  },
+
+  // Card posts go out as a photo (Telegram fetches imageUrl) with an HTML
+  // caption, so the flag / company logo leads the post. Caption cap: 1024.
+  async postCard(card: CardPost): Promise<SocialPostResult> {
+    const token = process.env.TELEGRAM_BOT_TOKEN!;
+    const channelId = process.env.TELEGRAM_CHANNEL_ID!;
+    const tagLine = card.hashtags.map((t) => `#${t}`).join(" ");
+    const caption = [
+      `<b>${escapeHtml(card.headline)}</b>`,
+      ...card.lines.map(escapeHtml),
+      "",
+      `<a href="${escapeHtml(card.linkUrl)}">${escapeHtml(card.cta)}</a>`,
+      tagLine ? `\n${escapeHtml(tagLine)}` : "",
+    ]
+      .filter((l, i, all) => l !== "" || all[i - 1] !== "")
+      .join("\n")
+      .slice(0, 1024);
+
+    const response = await fetch(`${TG_API}/bot${token}/sendPhoto`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: channelId, photo: card.imageUrl, caption, parse_mode: "HTML" }),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      ok?: boolean;
+      result?: { message_id?: number; chat?: { username?: string } };
+      description?: string;
+    };
+    if (!response.ok || !data.ok || !data.result?.message_id) {
+      throw new Error(`Telegram sendPhoto ${response.status}: ${data.description ?? "unknown error"}`);
+    }
+    const messageId = data.result.message_id;
+    const username = data.result.chat?.username ?? channelId.replace(/^@/, "");
     return {
       externalId: String(messageId),
       externalUrl: username ? `https://t.me/${username}/${messageId}` : null,

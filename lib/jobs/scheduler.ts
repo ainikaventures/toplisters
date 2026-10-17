@@ -96,6 +96,16 @@ export async function registerSchedules(): Promise<void> {
   );
   summary.push({ id: "maintenance:post-to-social", everyMin: 8 * 60 });
 
+  // Card posts once a day at 10:00 UTC (EU late morning / India afternoon):
+  // a country digest + a company spotlight per enabled platform, capped by
+  // SOCIAL_COUNTRY_POSTS_PER_DAY / SOCIAL_COMPANY_POSTS_PER_DAY.
+  await maintenanceQueue.upsertJobScheduler(
+    "maintenance:post-cards",
+    { pattern: "0 10 * * *" },
+    { name: "post-cards" },
+  );
+  summary.push({ id: "maintenance:post-cards", everyMin: 24 * 60 });
+
   // Daily company-directory rebuild at 04:30 UTC (after the stale sweep, so it
   // aggregates only live jobs).
   await maintenanceQueue.upsertJobScheduler(

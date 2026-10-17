@@ -316,6 +316,26 @@ model SocialPost {
   @@map("social_posts")
 }
 
+// Audit log for card posts (country digest / company spotlight) — not tied
+// to a single job. `key` is the ISO-2 country or the company slug; the
+// cooldown (same country 7d, same company 30d) is enforced by the picker
+// reading recent rows.
+model SocialCardPost {
+  id           String   @id @default(cuid())
+  platform     String
+  kind         String // "country" | "company"
+  key          String
+  status       String // "posted" | "failed"
+  externalId   String?  @map("external_id")
+  externalUrl  String?  @map("external_url")
+  errorMessage String?  @map("error_message")
+  postedAt     DateTime @default(now()) @map("posted_at")
+
+  @@index([platform, kind, postedAt])
+  @@index([kind, key])
+  @@map("social_card_posts")
+}
+
 // First-party visitor analytics (spec amendment 2026-05-15).
 // Cookieless: `visitorHash` = sha256(ip + ua + day-bucket + PAGEVIEW_SALT)
 // truncated to 16 hex chars, so the same person has a stable id within a
